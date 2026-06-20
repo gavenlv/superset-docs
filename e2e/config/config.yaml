@@ -1,0 +1,34 @@
+# Superset E2E 测试全局配置
+# 可被环境变量覆盖（参见 config/settings.py）
+
+mode: reuse  # cold=冷启动; reuse=复用现有服务
+cleanup_on_exit: true  # cold 模式下，测试结束后是否清理容器
+
+admin_username: admin
+admin_password: admin
+
+browser: chromium  # chromium | firefox | webkit
+headless: true
+
+# 浏览器操作超时（毫秒）
+page_timeout_ms: 30000
+navigation_timeout_ms: 60000
+
+# 失败重试
+reruns: 2
+reruns_delay: 3
+
+instances:
+  - name: 4.1
+    version: 4.1.1
+    base_url: "http://localhost:18088"
+    compose_dir: ../superset-4.1
+    postgres_container: superset-4.1-postgres
+    redis_container: superset-4.1-redis
+
+  - name: 6.0
+    version: 6.0.0
+    base_url: "http://localhost:18089"
+    compose_dir: ../superset-6.0
+    postgres_container: superset-6.0-postgres
+    redis_container: superset-6.0-redis

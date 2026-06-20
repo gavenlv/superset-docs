@@ -1,0 +1,114 @@
+# Superset 4.1 Docker Compose
+# 数据完全持久化：PostgreSQL、Redis、Superset 上传数据/配置均存放在命名卷中
+
+x-superset-image: &superset-image apache/superset:4.1.1
+
+x-common-env: &common-env
+  SUPERSET_SECRET_KEY: "superset-4.1-secret-key-please-change-in-production"
+  SUPERSET_LOAD_EXAMPLES: "yes"
+  SUPERSET_CONFIG_PATH: /app/superset_config.py
+  PYTHONPATH: /app/pythonpath:/app
+  # 用 raw.githubusercontent 作为示例数据源（4.1 内置的 github blob URL 实际返回的是 HTML 页面）
+  SUPERSET_EXAMPLES_BASE_URL: "https://raw.githubusercontent.com/apache-superset/examples-data/master/"
+  # 让示例数据写入本地 postgres（examples database 连接的默认 URI）
+  EXAMPLES_DB_URI: "postgresql+psycopg2://superset:superset@postgres:5432/superset"
+  # 使用本地 superset-samples 作为示例数据源，避免网络下载失败
+  SUPERSET_LOCAL_SAMPLES_DIR: "/app/local_samples"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: superset-4.1-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+    ports:
+      - "${POSTGRES_PORT:-15433}:5432"
+    volumes:
+      - superset_4_1_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: superset-4.1-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-16380}:6379"
+    volumes:
+      - superset_4_1_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset-init:
+    image: *superset-image
+    container_name: superset-4.1-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+    command: >
+      bash -c "
+        pip install --no-cache-dir psycopg2-binary redis &&
+        superset db upgrade &&
+        superset init &&
+        (superset fab list-users 2>/dev/null | grep -q '^admin' || superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin) &&
+        python /app/pythonpath/load_examples_init.py &&
+        echo 'INIT DONE'
+      "
+    volumes:
+      - ./superset_config.py:/app/superset_config.py:ro
+      - ./pythonpath:/app/pythonpath:ro
+      - ../example-data:/app/local_samples:ro
+
+  superset:
+    image: *superset-image
+    container_name: superset-4.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      superset-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *common-env
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    volumes:
+      - ./superset_config.py:/app/superset_config.py:ro
+      - ./pythonpath:/app/pythonpath:ro
+      - ../example-data:/app/local_samples:ro
+      - superset_4_1_data:/app/superset_home
+    command: >
+      bash -c "
+        pip install --no-cache-dir psycopg2-binary redis &&
+        superset run -h 0.0.0.0 -p 8088
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  default:
+    name: superset-41-net
+    driver: bridge
+
+volumes:
+  superset_4_1_db:
+  superset_4_1_redis:
+  superset_4_1_data:

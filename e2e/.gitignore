@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Playwright
+.playwright/
+/root/.cache/ms-playwright/
+
+# Allure 临时文件
+reports/allure-report/
+reports/screenshots/*.png
+!reports/allure-report/.gitkeep
+!reports/screenshots/.gitkeep
+
+# 测试结果（可选保留 allure-results 给 CI 抓取）
+# reports/allure-results/
