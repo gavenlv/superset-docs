@@ -248,7 +248,9 @@ class TestDatabaseCRUD:
     def test_ui_new_database(self, logged_in_page, superset_instance: ServiceState):
         """DB-UI-NEW: UI 新建数据库表单。"""
         base = superset_instance.instance.base_url
-        logged_in_page.goto(
+        from utils import page_actions as pa
+        pa.goto(
+            logged_in_page,
             f"{base}/database/list/",
             wait_until="domcontentloaded",
             timeout=30000,
@@ -306,8 +308,10 @@ class TestDatabaseCRUD:
         base = superset_instance.instance.base_url
         page = logged_in_page
         with when("the user opens the dashboard list page as a proxy", page=page, screenshot=True):
+            from utils import page_actions as _pa
             # 4.1 / 6.0 都有 /dashboard/list/；database list 在 4.1 不存在
-            page.goto(
+            _pa.goto(
+                page,
                 f"{base}/dashboard/list/",
                 wait_until="domcontentloaded",
                 timeout=30000,

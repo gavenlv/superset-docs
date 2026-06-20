@@ -100,7 +100,9 @@ class TestDashboards:
     @pytest.mark.dashboard
     def test_dashboards_list_page(self, logged_in_page, superset_instance: ServiceState):
         """仪表盘列表页能正常显示。"""
-        logged_in_page.goto(
+        from utils import page_actions as pa
+        pa.goto(
+            logged_in_page,
             f"{superset_instance.instance.base_url}/dashboard/list/",
             wait_until="domcontentloaded",
         )

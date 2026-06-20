@@ -51,7 +51,8 @@ class TestAuth:
         # 应当 302 跳到 /login/，session 被清
         assert resp.status in (200, 302), f"unexpected logout status: {resp.status}"
         # 再次访问 /superset/welcome/ 应被重定向到 login
-        page.goto(f"{base}/superset/welcome/", wait_until="load", timeout=20000)
+        from utils import page_actions as pa
+        pa.goto(page, f"{base}/superset/welcome/", wait_until="load", timeout=20000)
         assert "/login" in page.url.lower(), f"after logout, expected /login, got {page.url}"
 
     @pytest.mark.auth

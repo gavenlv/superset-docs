@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 from playwright.sync_api import Locator, Page, expect
 
+from utils import page_actions as pa
+
 if TYPE_CHECKING:
     pass
 
@@ -15,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 class DashboardPage:
-    """Superset 仪表盘详情页。"""
+    """Superset 仪表盘详情页。
+
+    所有用户操作走 `utils.page_actions`，headed 模式下浏览器会实时高亮。
+    """
 
     def __init__(self, page: Page, base_url: str, dashboard_id_or_slug: str | int):
         self.page = page
@@ -27,7 +32,7 @@ class DashboardPage:
         return f"{self.base_url}/superset/dashboard/{self.dashboard_id}/"
 
     def goto(self) -> "DashboardPage":
-        self.page.goto(self.url, wait_until="domcontentloaded")
+        pa.goto(self.page, self.url)
         return self
 
     def wait_loaded(self, timeout: int = 30000) -> None:
@@ -40,6 +45,16 @@ class DashboardPage:
 
     def chart_count(self) -> int:
         return self.chart_containers().count()
+
+    def click_chart(self, index: int = 0) -> None:
+        """点击第 N 个图表容器（高亮 + click）。"""
+        sel = ".dashboard-component-chart-holder, [data-test='chart-container']"
+        pa.click(self.page, f"{sel} >> nth={index}")
+
+    def hover_chart(self, index: int = 0) -> None:
+        """hover 第 N 个图表容器。"""
+        sel = ".dashboard-component-chart-holder, [data-test='chart-container']"
+        pa.hover(self.page, f"{sel} >> nth={index}")
 
     def wait_for_charts(self, expected: int, timeout: int = 30000) -> None:
         """等待图表数量达到预期。"""

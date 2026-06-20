@@ -24,25 +24,94 @@ logger = logging.getLogger(__name__)
 # 焦点高亮（仅对有 page 的步骤生效）
 # ---------------------------------------------------------------------------
 
+# 高亮 CSS：注入一次，红框 + 渐变 + 角标 + 动画
+_HIGHLIGHT_CSS = """
+/* BDD focus highlight — visible in headed and headless modes */
+.__bdd_focus__ {
+    position: relative !important;
+    outline: 4px solid #ff3366 !important;
+    outline-offset: 3px !important;
+    box-shadow:
+        0 0 0 8px rgba(255, 51, 102, 0.18),
+        0 0 24px 4px rgba(255, 51, 102, 0.55) !important;
+    background: rgba(255, 51, 102, 0.06) !important;
+    transition: outline 180ms ease-in-out, box-shadow 180ms ease-in-out, background 180ms ease-in-out !important;
+    animation: bddPulse 1.4s ease-in-out infinite;
+    z-index: 999999 !important;
+}
+
+@keyframes bddPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 8px rgba(255, 51, 102, 0.18),
+            0 0 24px 4px rgba(255, 51, 102, 0.55);
+    }
+    50% {
+        box-shadow:
+            0 0 0 12px rgba(255, 51, 102, 0.28),
+            0 0 36px 8px rgba(255, 51, 102, 0.85);
+    }
+}
+
+/* 右上角 BDD 角标 */
+.__bdd_focus__::after {
+    content: "● BDD";
+    position: absolute;
+    top: -16px;
+    right: -16px;
+    background: #ff3366;
+    color: #fff;
+    font: bold 11px/1 -apple-system, "Segoe UI", sans-serif;
+    padding: 4px 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    z-index: 1000000;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}
+
+/* 左上角 step 标签角标 */
+.__bdd_focus__::before {
+    content: attr(data-bdd-step);
+    position: absolute;
+    top: -16px;
+    left: -16px;
+    background: #00b3a4;
+    color: #fff;
+    font: bold 10px/1 -apple-system, "Segoe UI", sans-serif;
+    padding: 4px 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    z-index: 1000000;
+    pointer-events: none;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+"""
+
 _HIGHLIGHT_JS = """
-(target) => {
+(target, stepLabel) => {
   if (!target) return false;
   // 移除旧高亮
   document.querySelectorAll('.__bdd_focus__').forEach(el => {
     el.classList.remove('__bdd_focus__');
-    if (el.__bdd_old_style) {
+    if (el.__bdd_old_style !== undefined) {
       el.style.cssText = el.__bdd_old_style;
       delete el.__bdd_old_style;
     }
+    el.removeAttribute('data-bdd-step');
   });
   // 加新高亮
   target.classList.add('__bdd_focus__');
   target.__bdd_old_style = target.style.cssText;
-  target.style.outline = '3px solid #ff3366';
-  target.style.outlineOffset = '2px';
-  target.style.boxShadow = '0 0 0 6px rgba(255,51,102,0.25)';
+  target.style.cssText += '; outline: 4px solid #ff3366 !important; outline-offset: 3px !important;';
+  if (stepLabel) {
+    target.setAttribute('data-bdd-step', stepLabel);
+  }
   // 滚到视野
-  target.scrollIntoView({block: 'center', behavior: 'instant'});
+  try { target.scrollIntoView({block: 'center', behavior: 'instant'}); } catch (e) {}
   return true;
 }
 """
@@ -54,13 +123,7 @@ def _ensure_highlight_css(page: Any) -> None:
     """注入一次高亮 CSS。"""
     try:
         if not page.evaluate(f"!!document.documentElement.getAttribute('{_STYLE_INJECTED_ATTR}')"):
-            page.add_style_tag(
-                content="""
-                .__bdd_focus__ {
-                    transition: outline 120ms ease-in-out, box-shadow 120ms ease-in-out;
-                }
-                """
-            )
+            page.add_style_tag(content=_HIGHLIGHT_CSS)
             page.evaluate(
                 f"document.documentElement.setAttribute('{_STYLE_INJECTED_ATTR}', '1')"
             )
@@ -68,20 +131,47 @@ def _ensure_highlight_css(page: Any) -> None:
         pass
 
 
-def highlight(page: Any, selector: str) -> None:
-    """高亮一个元素（按 selector 找第一个匹配）。"""
+def highlight(page: Any, selector: str, *, label: str = "") -> None:
+    """高亮一个元素（按 selector 找第一个匹配）。
+
+    Args:
+        page: Playwright page
+        selector: CSS selector
+        label: 显示在左上角角标的步骤描述（短文本）
+    """
     if page is None or not selector:
         return
     try:
         _ensure_highlight_css(page)
-        # 找元素
         loc = page.locator(selector).first
         if loc.count() == 0:
             return
         handle = loc.element_handle()
         if handle is None:
             return
-        page.evaluate(_HIGHLIGHT_JS, handle)
+        # 截断 label
+        short_label = (label or "").strip()[:30]
+        page.evaluate(
+            """({el, lbl}) => {
+                const target = el;
+                if (!target) return false;
+                document.querySelectorAll('.__bdd_focus__').forEach(e => {
+                    e.classList.remove('__bdd_focus__');
+                    if (e.__bdd_old_style !== undefined) {
+                        e.style.cssText = e.__bdd_old_style;
+                        delete e.__bdd_old_style;
+                    }
+                    e.removeAttribute('data-bdd-step');
+                });
+                target.classList.add('__bdd_focus__');
+                target.__bdd_old_style = target.style.cssText;
+                target.style.cssText += '; outline: 4px solid #ff3366 !important; outline-offset: 3px !important;';
+                if (lbl) target.setAttribute('data-bdd-step', lbl);
+                try { target.scrollIntoView({block: 'center', behavior: 'instant'}); } catch (e) {}
+                return true;
+            }""",
+            {"el": handle, "lbl": short_label},
+        )
     except Exception as e:  # noqa: BLE001
         logger.debug("highlight failed: %s", e)
 
@@ -160,7 +250,7 @@ def action_log() -> list[str]:
 # ---------------------------------------------------------------------------
 
 @contextmanager
-def given(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False) -> Iterator[None]:
+def given(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False, label: str = "") -> Iterator[None]:
     """Given: 前置条件。
 
     Args:
@@ -168,12 +258,13 @@ def given(text: str, *, page: Any = None, focus: str = "", screenshot: bool = Fa
         page: 关联的 Playwright page（可选）
         focus: 高亮元素的 CSS selector
         screenshot: 是否截图附加
+        label: 高亮角标文本（默认用 text）
     """
     with allure.step(f"Given: {text}"):
         if page is not None:
             set_active_page(page)
         if focus:
-            highlight(page, focus)
+            highlight(page, focus, label=label or text)
         if screenshot and page is not None:
             _attach_screenshot(page, "given")
         _ACTION_LOG.append(f"GIVEN: {text}")
@@ -186,13 +277,13 @@ def given(text: str, *, page: Any = None, focus: str = "", screenshot: bool = Fa
 
 
 @contextmanager
-def when(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False) -> Iterator[None]:
+def when(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False, label: str = "") -> Iterator[None]:
     """When: 触发动作。"""
     with allure.step(f"When: {text}"):
         if page is not None:
             set_active_page(page)
         if focus:
-            highlight(page, focus)
+            highlight(page, focus, label=label or text)
         if screenshot and page is not None:
             _attach_screenshot(page, "when")
         _ACTION_LOG.append(f"WHEN:  {text}")
@@ -205,13 +296,13 @@ def when(text: str, *, page: Any = None, focus: str = "", screenshot: bool = Fal
 
 
 @contextmanager
-def then(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False) -> Iterator[None]:
+def then(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False, label: str = "") -> Iterator[None]:
     """Then: 验证结果。"""
     with allure.step(f"Then: {text}"):
         if page is not None:
             set_active_page(page)
         if focus:
-            highlight(page, focus)
+            highlight(page, focus, label=label or text)
         if screenshot and page is not None:
             _attach_screenshot(page, "then")
         _ACTION_LOG.append(f"THEN:  {text}")
@@ -224,13 +315,13 @@ def then(text: str, *, page: Any = None, focus: str = "", screenshot: bool = Fal
 
 
 @contextmanager
-def and_(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False) -> Iterator[None]:
+def and_(text: str, *, page: Any = None, focus: str = "", screenshot: bool = False, label: str = "") -> Iterator[None]:
     """And: 补充步骤。"""
     with allure.step(f"And: {text}"):
         if page is not None:
             set_active_page(page)
         if focus:
-            highlight(page, focus)
+            highlight(page, focus, label=label or text)
         if screenshot and page is not None:
             _attach_screenshot(page, "and")
         _ACTION_LOG.append(f"AND:   {text}")
