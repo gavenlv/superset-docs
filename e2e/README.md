@@ -27,7 +27,7 @@ e2e/
 ├── fixtures/
 │   ├── conftest.py          # 服务生命周期 fixture
 │   ├── playwright_fixtures.py  # 浏览器、登录、截图 hook
-│   └── allure_config.py     # Allure 环境与分类
+│   └── allure_config.py     # Allure 环境与分类（运行时生成）
 ├── pages/                   # Page Object Model
 │   ├── login_page.py
 │   ├── dashboard_page.py
@@ -46,10 +46,10 @@ e2e/
 │   ├── charts/              # 单图表
 │   ├── sqllab/              # SQL Lab
 │   └── databases/           # 数据库 / 数据集
-└── reports/                 # 报告输出
-    ├── allure-results/      # Allure 原始数据
-    ├── allure-report/       # Allure HTML
-    └── screenshots/         # 失败截图
+└── reports/                 # 报告输出（运行时生成，已 gitignore）
+    ├── allure-results/      # Allure 原始数据（.gitkeep 占位）
+    ├── allure-report/       # Allure HTML（.gitkeep 占位）
+    └── screenshots/         # 失败截图（.gitkeep 占位）
 ```
 
 ## 快速开始
@@ -171,3 +171,26 @@ allure generate reports/allure-results -o reports/allure-report --clean
 - **冷启动超时**：`init` 容器首次加载示例需要 4-5 分钟，确认日志后调整 `cold_start_instance` 中的 timeout
 - **测试 fail / 截图**：`reports/screenshots/` 下查看全屏截图，`reports/allure-results/` 包含 HTML 快照
 - **Mapbox 429**：已知限流问题，测试已容忍；如需彻底解决请配置 `MAPBOX_API_KEY`
+
+## 清理临时文件
+
+测试运行会在 `reports/` 下生成临时产物（allure-results、截图、HTML 报告），这些文件已通过 `.gitignore` 忽略，不会进入版本控制。
+
+手动清理：
+
+```bash
+# 清理测试产物（保留目录结构）
+cd e2e
+rm -rf reports/allure-results/* reports/allure-report/* reports/screenshots/*.png
+# 保留 .gitkeep
+touch reports/allure-results/.gitkeep reports/screenshots/.gitkeep
+
+# 清理 Python 缓存
+find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null
+rm -rf .pytest_cache .ruff_cache .mypy_cache
+
+# 清理 Playwright 缓存（可选）
+rm -rf .playwright
+```
+
+仓库中不应残留调试脚本（如 `debug_*.py`、`verify_*.py`），如需临时调试请放到 `e2e/` 之外或用完即删。

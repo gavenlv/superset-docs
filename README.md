@@ -6,6 +6,7 @@ superset docs
 - `superset-4.1/` — Superset 4.1.1 完整环境（Web + Postgres + Redis）
 - `superset-6.0/` — Superset 6.0.0 完整环境（Web + Worker + Postgres + Redis）
 - `example-data/` — 示例数据集（CSV/JSON），供两个版本加载示例图表
+- `e2e/` — 端到端自动化测试（pytest + Playwright + Allure）
 
 两个版本互相独立，使用不同的端口与独立的数据卷，可同时运行。
 
@@ -76,3 +77,41 @@ cd ../superset-6.0 && docker compose down
 4. 修复图表 `query_context` 中数据源 ID 不匹配问题（6.0）
 
 完全清理后重新启动即可自动加载示例数据，无需网络下载。
+
+## E2E 自动化测试
+
+`e2e/` 目录包含针对 Superset 4.1 和 6.0 的端到端自动化测试，基于 pytest + Playwright + Allure。
+
+### 快速运行
+
+```bash
+cd e2e
+pip install -r requirements.txt
+playwright install chromium
+
+# 复用现有服务跑 smoke 测试
+python run.py -m smoke
+
+# 冷启动模式（先 down -v 再 up -d）
+python run.py --mode cold -m smoke
+
+# 只跑 4.1
+python run.py --instance 4.1
+
+# 生成 Allure 报告
+python run.py --allure
+```
+
+详细文档见 [e2e/README.md](e2e/README.md)。
+
+### 清理测试产物
+
+测试运行生成的临时文件（allure-results、截图、HTML 报告）已通过 `.gitignore` 忽略，不会进入版本控制。手动清理：
+
+```bash
+cd e2e
+rm -rf reports/allure-results/* reports/allure-report/* reports/screenshots/*.png
+touch reports/allure-results/.gitkeep reports/screenshots/.gitkeep
+find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null
+rm -rf .pytest_cache .ruff_cache .mypy_cache
+```
