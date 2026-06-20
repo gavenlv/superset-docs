@@ -1,23 +1,56 @@
 # Superset E2E 测试全局配置
-# 可被环境变量覆盖（参见 config/settings.py）
+# 可被环境变量覆盖（参见 config/settings.py 与 e2e/README.md 中的"环境变量"章节）
+#
+# 优先级: 环境变量 > 本文件
 
-mode: reuse  # cold=冷启动; reuse=复用现有服务
-cleanup_on_exit: true  # cold 模式下，测试结束后是否清理容器
+# ----------------------------------------------------------------------------
+# 模式
+# ----------------------------------------------------------------------------
+# - reuse: 复用已启动的 Superset 容器（默认；适合本地/CI 默认行为）
+# - cold:  测试运行前 docker compose down -v && up -d，从零加载示例数据
+mode: reuse
 
+# cold 模式结束后是否清理容器
+# true:  跑完测试 docker compose down（保留数据卷）
+# false: 保留容器，可继续访问 Web UI 调试
+cleanup_on_exit: true
+
+# ----------------------------------------------------------------------------
+# 凭据
+# ----------------------------------------------------------------------------
 admin_username: admin
 admin_password: admin
 
-browser: chromium  # chromium | firefox | webkit
+# ----------------------------------------------------------------------------
+# 浏览器
+# ----------------------------------------------------------------------------
+# chromium | firefox | webkit
+browser: chromium
+# true=无头模式（CI/服务器）；false=有头模式（本地调试方便看 UI）
 headless: true
 
 # 浏览器操作超时（毫秒）
-page_timeout_ms: 30000
-navigation_timeout_ms: 60000
+page_timeout_ms: 30000       # 单个 locator 等待 / 填写 / 点击
+navigation_timeout_ms: 60000  # page.goto 默认超时
 
+# ----------------------------------------------------------------------------
 # 失败重试
-reruns: 2
-reruns_delay: 3
+# ----------------------------------------------------------------------------
+reruns: 2         # 失败后重试次数
+reruns_delay: 3   # 每次重试前等待秒数
 
+# ----------------------------------------------------------------------------
+# Superset 实例
+# ----------------------------------------------------------------------------
+# 每个实例对应一个 docker-compose 子项目。
+# base_url 是浏览器访问入口；compose_dir 是相对 e2e/ 的相对路径。
+#
+# 自定义实例可通过环境变量覆盖 base_url（不影响容器端口）：
+#   E2E_BASE_URL_4_1=http://192.168.1.10:18088
+#   E2E_BASE_URL_6_0=http://192.168.1.10:18089
+#
+# 自定义容器端口请修改对应 superset-<ver>/docker-compose.yml 中的
+# POSTGRES_PORT / REDIS_PORT / SUPERSET_PORT 环境变量。
 instances:
   - name: 4.1
     version: 4.1.1

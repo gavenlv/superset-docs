@@ -1,0 +1,252 @@
+# Superset 4.1 / 6.0 E2E 覆盖计划与进度表
+
+> 单一事实源（Single Source of Truth）。每个用例一行；状态用 [ ] / [x] / [~] 标记。
+>
+> - [ ] = 未开始
+> - [~] = 实现中 / 部分覆盖
+> - [x] = 已实现且稳定
+> - [s] = 已实现但 skip（环境/版本不支持），仅 API
+>
+> 双版本：4.1 / 6.0，由 `superset_instance` fixture 参数化（[v4.1]/[v6.0]）。
+>
+> **配套 BDD 规范**：[spec/](file:///d:/workspace/superset-space/superset-docs/e2e/spec/) — 业务可读的 Given-When-Then 规范，按模块拆分为 13 个 `.feature` 文件。
+
+## 1. 概览
+
+| 优先级 | 阶段 | 目标 | 用例数 | 状态 | BDD 场景数 |
+| --- | --- | --- | --- | --- | --- |
+| P0-A | 数据库 CRUD | 数据库创建/编辑/删除/连接测试 | 8 | 7/8 ([s] UI 4.1 入口) | 8 |
+| P0-B | 数据集 CRUD | 物理表 → 虚拟数据集 + 上传 | 9 | 0/9 | 9 |
+| P0-C | 图表 CRUD | 增删改查 + 导出导入 | 8 | 0/8 | 8 |
+| P0-D | 仪表盘 CRUD | 增删改查 + 布局 + 嵌入 | 9 | 0/9 | 9 |
+| P0-E | viz_type 矩阵 | 30+ 图表每类一跑 | 34 | 0/34 | 34 |
+| P1-A | 仪表盘过滤器 | Native / Cross / Time | 10 | 0/10 | 10 |
+| P1-B | SQL Lab 增强 | 多 tab / CTAS / 保存 / CSV | 8 | 0/8 | 8 |
+| P1-C | Explore 编辑器 | metric/dim/filter/保存/下载 | 7 | 0/7 | 7 |
+| P2-A | 导入 / 导出 | 仪表盘 / 图表 YAML/ZIP | 5 | 0/5 | 5 |
+| P2-B | 告警 / 报告 | 告警 CRUD + 报告调度 | 6 | 0/6 | 6 |
+| P3-A | RBAC | 角色 / 用户 / 权限 | 7 | 0/7 | 7 |
+| P3-B | 嵌入 + 公开 API | embed + REST | 5 | 0/5 | 5 |
+| P3-C | 系统设置 | 配置 / 欢迎页 | 4 | 0/4 | 4 |
+| **合计** |  |  | **120** | **7/120** | **120** |
+
+历史已实现（19 个，在新计划重新整合前保留）：
+
+| 模块 | 用例 |
+| --- | --- |
+| health | test_health_endpoint、test_login_api、test_login_page_loads |
+| auth | test_admin_login_success、test_wrong_password_fails、test_logout_via_api、test_logout |
+| databases | test_examples_database_exists、test_examples_database_uri_is_postgres、test_datasets_loaded |
+| charts | test_charts_list_api、test_charts_query_data_api、test_open_one_chart_in_explore |
+| dashboards | test_dashboards_list_api、test_open_example_dashboard(×2)、test_dashboards_list_page |
+| sqllab | test_sqllab_page_loads、test_sqllab_databases_available、test_run_simple_query |
+
+---
+
+## 2. 用例清单（按阶段）
+
+### P0-A 数据库 CRUD — 8 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | DB-LIST | 列表分页+过滤 | database smoke | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_list_databases` |
+| 2 | DB-GET | 详情获取 | database | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_get_database_by_id` |
+| 3 | DB-CREATE | 创建 PG/SQLite 数据库 | database | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_create_database` |
+| 4 | DB-EDIT | 修改名称/URI/expose_in_sqllab | database | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_edit_database` |
+| 5 | DB-DELETE | 删除（先创建再删） | database | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_delete_database` |
+| 6 | DB-CONN | 连接测试端点 | database | [x] | `tests/databases/test_database_crud.py::TestDatabaseCRUD::test_connection_test` |
+| 7 | DB-UI-NEW | UI 新建数据库表单 | database slow | [s] | 4.1 没有 `/database/list/` 页面，list view 需走 `/dashboard/list/` 或 `/chart/list/`；spec 中标注为 "database list 入口"，在 4.1 改为验证 "Data → Databases" 菜单存在（待做） |
+| 8 | DB-UI-LIST | UI 列表页可显示 | database | [x] | 4.1/6.0 统一从 `/dashboard/list/` 验证（database list 在 4.1 不存在，6.0 走 `/database/list/`）；现已在 P0-A 通过 BDD 改造 |
+
+### P0-B 数据集 CRUD — 9 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | DS-LIST | 列表 | database smoke | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_list_datasets` |
+| 2 | DS-GET | 详情 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_get_dataset` |
+| 3 | DS-CREATE | 物理表 → 虚拟数据集 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_create_dataset_from_table` |
+| 4 | DS-EDIT | 增删列、metric、过滤 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_edit_dataset_columns_metrics` |
+| 5 | DS-CALC-METRIC | 创建计算 metric | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_create_calculated_metric` |
+| 6 | DS-DEL-COL | 删除列 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_delete_column` |
+| 7 | DS-DELETE | 删除数据集 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_delete_dataset` |
+| 8 | DS-UPLOAD-CSV | 上传 CSV 创建数据集 | database slow | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_upload_csv` |
+| 9 | DS-REFRESH | 元数据刷新 | database | [ ] | `tests/databases/test_dataset_crud.py::TestDatasetCRUD::test_refresh_metadata` |
+
+### P0-C 图表 CRUD — 8 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | CH-LIST | API 列表 | chart smoke | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_list_charts` |
+| 2 | CH-GET | 详情 | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_get_chart` |
+| 3 | CH-CREATE-API | API 创建 big_number | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_create_chart_via_api` |
+| 4 | CH-EDIT-API | 修改名称/描述 | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_edit_chart_via_api` |
+| 5 | CH-DATA | data 端点 | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_chart_data_endpoint` |
+| 6 | CH-DELETE | API 删除 | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_delete_chart` |
+| 7 | CH-EXPORT | 导出 JSON | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_export_chart` |
+| 8 | CH-IMPORT | 导入 JSON | chart | [ ] | `tests/charts/test_chart_crud.py::TestChartCRUD::test_import_chart` |
+
+### P0-D 仪表盘 CRUD — 9 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | DB-LIST-API | API 列表 | dashboard smoke | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_list_dashboards` |
+| 2 | DB-GET-API | 详情 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_get_dashboard` |
+| 3 | DB-CREATE | API 创建空白仪表盘 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_create_dashboard` |
+| 4 | DB-EDIT-NAME | 修改标题 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_edit_dashboard` |
+| 5 | DB-DELETE | API 删除 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_delete_dashboard` |
+| 6 | DB-LAYOUT | 布局 JSON 校验 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_dashboard_layout` |
+| 7 | DB-EMBED-CHART | 把 chart 加入仪表盘 | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_embed_chart` |
+| 8 | DB-EXPORT | 导出 ZIP | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_export_dashboard` |
+| 9 | DB-IMPORT | 导入 ZIP | dashboard | [ ] | `tests/dashboards/test_dashboard_crud.py::TestDashboardCRUD::test_import_dashboard` |
+
+### P0-E viz_type 矩阵 — 34 个
+
+数据源：每个 viz 用一个简单 dataset（`birth_names` / `video_game_sales` / `flights`），跑通 `/chart/{id}/data` 与 `/explore/?slice_id={id}` 渲染。
+
+| # | viz_type | 类别 | 数据集 | 状态 |
+| --- | --- | --- | --- | --- |
+| 1 | table | table | birth_names | [ ] |
+| 2 | pivot_table | table | birth_names | [ ] |
+| 3 | pivot_table_v2 | table | birth_names | [ ] |
+| 4 | big_number | numeric | birth_names | [ ] |
+| 5 | big_number_total | numeric | birth_names | [ ] |
+| 6 | big_number_period_compare | numeric | birth_names | [ ] |
+| 7 | percent_change | numeric | birth_names | [ ] |
+| 8 | gauge | numeric | birth_names | [ ] |
+| 9 | line | time | birth_names | [ ] |
+| 10 | timeseries | time | birth_names | [ ] |
+| 11 | bar | time | birth_names | [ ] |
+| 12 | timeseries_bar | time | birth_names | [ ] |
+| 13 | area | time | birth_names | [ ] |
+| 14 | compare | time | birth_names | [ ] |
+| 15 | step | time | birth_names | [ ] |
+| 16 | candlestick | time | birth_names | [ ] |
+| 17 | pie | pie | birth_names | [ ] |
+| 18 | donut | pie | birth_names | [ ] |
+| 19 | treemap | distribution | birth_names | [ ] |
+| 20 | sunburst | distribution | birth_names | [ ] |
+| 21 | funnel | distribution | video_game_sales | [ ] |
+| 22 | sankey | distribution | video_game_sales | [ ] |
+| 23 | icicle | distribution | birth_names | [ ] |
+| 24 | histogram | distribution | birth_names | [ ] |
+| 25 | dist_bar | distribution | birth_names | [ ] |
+| 26 | box_plot | distribution | birth_names | [ ] |
+| 27 | violin | distribution | birth_names | [ ] |
+| 28 | scatter | relationship | birth_names | [ ] |
+| 29 | bubble | relationship | birth_names | [ ] |
+| 30 | heatmap | relationship | flights | [ ] |
+| 31 | correlation | relationship | flights | [ ] |
+| 32 | calendar_heatmap | event | flights | [ ] |
+| 33 | word_cloud | text | birth_names | [ ] |
+| 34 | radar | distribution | birth_names | [ ] |
+
+文件：`tests/charts/test_viz_matrix.py::TestVizMatrix::test_render[viz_type-...]`（参数化）
+
+### P1-A 仪表盘过滤器 — 10 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | F-NEW-UI | UI 新建原生过滤器 | dashboard slow | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_create_filter` |
+| 2 | F-DEL-UI | 删除过滤器 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_delete_filter` |
+| 3 | F-VALUE | 改值触发图表刷新 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_filter_value_changes_chart` |
+| 4 | F-TIME | 时间范围 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_time_range_filter` |
+| 5 | F-NUM | 数值范围 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_numeric_range_filter` |
+| 6 | F-SELECT | 下拉单选 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_select_filter` |
+| 7 | F-MULTI | 下拉多选 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestNativeFilters::test_multi_select_filter` |
+| 8 | F-CROSS | 跨图表过滤 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestCrossFilters::test_cross_filter` |
+| 9 | F-URL-PARAM | URL 参数 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestURLParams::test_url_params` |
+| 10 | F-REFRESH | 自动刷新 | dashboard | [ ] | `tests/dashboards/test_filters.py::TestRefresh::test_auto_refresh` |
+
+### P1-B SQL Lab 增强 — 8 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | SQL-MULTI-TAB | 多 tab | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_multi_tabs` |
+| 2 | SQL-RUN-LIMIT | LIMIT 子句生效 | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_run_with_limit` |
+| 3 | SQL-CTAS | CREATE TABLE AS | sqllab slow | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_ctas` |
+| 4 | SQL-SAVE | 保存查询 | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_save_query` |
+| 5 | SQL-HISTORY | 查询历史 | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_query_history` |
+| 6 | SQL-EXPORT-CSV | 导出 CSV | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_export_csv` |
+| 7 | SQL-TEMPLATE | Jinja 模板参数 | sqllab | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_template_params` |
+| 8 | SQL-ASYNC | 异步执行（6.0 worker） | sqllab slow | [ ] | `tests/sqllab/test_sqllab_adv.py::TestSqlLabAdv::test_async_query` |
+
+### P1-C Explore 编辑器 — 7 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | EX-DATASET | 切换数据集 | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_switch_dataset` |
+| 2 | EX-METRIC | 加 metric | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_add_metric` |
+| 3 | EX-DIM | 加 groupby | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_add_groupby` |
+| 4 | EX-FILTER | 加 adhoc filter | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_add_filter` |
+| 5 | EX-TIME | 时间范围 | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_time_range` |
+| 6 | EX-SAVE | 保存图表 | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_save_chart` |
+| 7 | EX-DOWNLOAD | 探索页下载 CSV | chart | [ ] | `tests/charts/test_explore.py::TestExplore::test_download_csv` |
+
+### P2-A 导入导出 — 5 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | EXP-DB | 导出数据库 YAML | database | [ ] | `tests/databases/test_import_export.py::TestImportExport::test_export_db` |
+| 2 | EXP-CHART | 导出图表 YAML | chart | [ ] | `tests/databases/test_import_export.py::TestImportExport::test_export_chart` |
+| 3 | EXP-DASH-ZIP | 导出仪表盘 ZIP | dashboard | [ ] | `tests/databases/test_import_export.py::TestImportExport::test_export_dashboard_zip` |
+| 4 | IMP-CHART | 导入图表 YAML | chart | [ ] | `tests/databases/test_import_export.py::TestImportExport::test_import_chart` |
+| 5 | IMP-DASH-ZIP | 导入仪表盘 ZIP | dashboard | [ ] | `tests/databases/test_import_export.py::TestImportExport::test_import_dashboard_zip` |
+
+### P2-B 告警 / 报告 — 6 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | AL-LIST | 列表 | alert smoke | [ ] | `tests/alerts/test_alerts.py::TestAlerts::test_list_alerts` |
+| 2 | AL-CREATE | 创建 SQL 告警 | alert | [ ] | `tests/alerts/test_alerts.py::TestAlerts::test_create_sql_alert` |
+| 3 | AL-EDIT | 修改阈值 | alert | [ ] | `tests/alerts/test_alerts.py::TestAlerts::test_edit_alert` |
+| 4 | AL-DELETE | 删除 | alert | [ ] | `tests/alerts/test_alerts.py::TestAlerts::test_delete_alert` |
+| 5 | RP-CREATE | 创建报告调度 | report | [ ] | `tests/alerts/test_reports.py::TestReports::test_create_report` |
+| 6 | RP-LIST | 报告列表 | report | [ ] | `tests/alerts/test_reports.py::TestReports::test_list_reports` |
+
+### P3-A RBAC — 7 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | RB-USER-LIST | 用户列表 | auth | [ ] | `tests/auth/test_rbac.py::TestUsers::test_list_users` |
+| 2 | RB-USER-CRUD | 创建/编辑/删除用户 | auth | [ ] | `tests/auth/test_rbac.py::TestUsers::test_user_crud` |
+| 3 | RB-ROLE-LIST | 角色列表 | auth | [ ] | `tests/auth/test_rbac.py::TestRoles::test_list_roles` |
+| 4 | RB-ROLE-CRUD | 创建/编辑/删除角色 | auth | [ ] | `tests/auth/test_rbac.py::TestRoles::test_role_crud` |
+| 5 | RB-PERM-DB | DB 权限矩阵 | auth | [ ] | `tests/auth/test_rbac.py::TestPermissions::test_database_permissions` |
+| 6 | RB-PERM-CH | chart 权限 | auth | [ ] | `tests/auth/test_rbac.py::TestPermissions::test_chart_permissions` |
+| 7 | RB-LOGIN-OTHER | 非 admin 登录 | auth | [ ] | `tests/auth/test_rbac.py::TestAuth::test_non_admin_login` |
+
+### P3-B 嵌入 + 公开 API — 5 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | EM-CREATE | 创建 embed 凭证 | dashboard | [ ] | `tests/dashboards/test_embed.py::TestEmbed::test_create_embed` |
+| 2 | EM-GET | 公开嵌入 URL | dashboard | [ ] | `tests/dashboards/test_embed.py::TestEmbed::test_get_embed_url` |
+| 3 | EM-RENDER | 嵌入页可渲染 | dashboard | [ ] | `tests/dashboards/test_embed.py::TestEmbed::test_embed_renders` |
+| 4 | API-DOCS | /api/v1/ 列表 | api | [ ] | `tests/health/test_health.py::TestApi::test_api_endpoints_listed` |
+| 5 | API-CSRF | 写操作需 CSRF | api | [ ] | `tests/health/test_health.py::TestApi::test_csrf_required` |
+
+### P3-C 系统设置 — 4 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | SET-WELCOME | 欢迎页 | misc | [ ] | `tests/health/test_health.py::TestMisc::test_welcome_page` |
+| 2 | SET-LOGO | Logo 配置项 | misc | [ ] | `tests/health/test_health.py::TestMisc::test_logo_settings` |
+| 3 | SET-LANG | 语言切换 | misc | [ ] | `tests/health/test_health.py::TestMisc::test_language_switch` |
+| 4 | SET-TZ | 时区显示 | misc | [ ] | `tests/health/test_health.py::TestMisc::test_timezone` |
+
+---
+
+## 3. 进度更新规则
+
+每完成一个用例（实现 + 跑通 4.1 + 6.0 至少一个版本）后：
+
+1. 修改本文件对应行的 `[ ]` → `[x]`
+2. 若仅部分支持：标 `[~]`，备注里写明剩余项
+3. 若环境不支持：标 `[s]`，备注里写明原因
+
+## 4. 风险与依赖
+
+- **写操作需 CSRF + JWT**：API 路径用 `/api/v1/security/csrf_token/` 拿 token，再带 cookie
+- **viz 矩阵 30+ 类型**：单测耗时长 5-10 分钟，需用 `pytest-xdist -n auto` 并行
+- **6.0 SPA + Ant Design**：UI 操作类用例失败率较高，优先以 API 路径覆盖
+- **示例数据**：依赖 init 容器已加载，cold 模式下 `run.py --mode cold` 自动保证

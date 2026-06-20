@@ -46,6 +46,16 @@ markers = [
     "database: 数据库相关",
     "health: 健康检查",
     "slow: 耗时较长的测试",
+    "viz: 图表类型矩阵",
+    "filter: 仪表盘过滤器",
+    "explore: Explore 编辑器",
+    "import_export: 导入/导出",
+    "alert: 告警",
+    "report: 报告",
+    "rbac: 角色权限",
+    "embed: 嵌入式",
+    "api: 公共 API",
+    "misc: 系统设置",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
