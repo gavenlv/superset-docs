@@ -33,3 +33,7 @@ SQLLAB_CTAS_NO_LIMIT = True
 # 6.0 特性
 ENABLE_TEMPLATE_PROCESSING = True
 TALISMAN_ENABLED = False
+
+# 启用 Alerts / Reports 模块（需重启容器生效）
+# 不启用时 /api/v1/alert 与 /api/v1/report 端点返回 404
+ENABLE_ALERTS = True

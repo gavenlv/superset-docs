@@ -56,6 +56,15 @@ markers = [
     "embed: 嵌入式",
     "api: 公共 API",
     "misc: 系统设置",
+    # P4 — 补充端到端测试
+    "saved_query: 已保存查询 CRUD",
+    "rls: 行级安全 CRUD",
+    "annotation: 图表注释层 CRUD",
+    "css: CSS 模板 CRUD",
+    "db_meta: 数据库元数据查询",
+    "tag: 标签 CRUD",
+    "chart_data: 图表数据端点",
+    "sqllab_state: SQL Lab 状态",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

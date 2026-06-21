@@ -9,7 +9,7 @@
 >
 > 双版本：4.1 / 6.0，由 `superset_instance` fixture 参数化（[v4.1]/[v6.0]）。
 >
-> **配套 BDD 规范**：[spec/](file:///d:/workspace/superset-space/superset-docs/e2e/spec/) — 业务可读的 Given-When-Then 规范，按模块拆分为 13 个 `.feature` 文件。
+> **配套 BDD 规范**：[spec/](file:///d:/workspace/superset-space/superset-docs/e2e/spec/) — 业务可读的 Given-When-Then 规范，按模块拆分为 21 个 `.feature` 文件。
 
 ## 1. 概览
 
@@ -24,11 +24,19 @@
 | P1-B | SQL Lab 增强 | 多 tab / CTAS / 保存 / CSV | 8 | 8/8 | 8 |
 | P1-C | Explore 编辑器 | metric/dim/filter/保存/下载 | 7 | 7/7 | 7 |
 | P2-A | 导入 / 导出 | 仪表盘 / 图表 YAML/ZIP | 5 | 5/5 | 5 |
-| P2-B | 告警 / 报告 | 告警 CRUD + 报告调度 | 6 | 4/6 ([s] alert 未启用) | 6 |
+| P2-B | 告警 / 报告 | 告警 CRUD + 报告调度 | 6 | 0/6 ([s] 容器需重启启用 ENABLE_ALERTS) | 6 |
 | P3-A | RBAC | 角色 / 用户 / 权限 | 7 | 5/7 ([s] 4.1 不支持) | 7 |
 | P3-B | 嵌入 + 公开 API | embed + REST | 5 | 5/5 | 5 |
 | P3-C | 系统设置 | 配置 / 欢迎页 | 4 | 4/4 | 4 |
-| **合计** |  |  | **120** | **115/120** | **120** |
+| P4-A | Saved Queries | SQL Lab 已保存查询 CRUD | 4 | 4/4 | 4 |
+| P4-B | Row Level Security | 行级安全规则 CRUD | 4 | 4/4 | 4 |
+| P4-C | Annotation Layer | 图表注释层 CRUD | 3 | 3/3 | 3 |
+| P4-D | CSS Template | 自定义主题 CRUD | 2 | 2/2 | 2 |
+| P4-E | Database introspection | schema/table/function 元数据 | 3 | 3/3 | 3 |
+| P4-F | Tag | 标签 CRUD (create 仅 6.0) | 2 | 2/2 ([s] 4.1 POST 500) | 2 |
+| P4-G | Chart data / explore | 图表数据查询 | 5 | 5/5 | 5 |
+| P4-H | SQL Lab state | tab 状态 | 1 | 1/1 | 1 |
+| **合计** |  |  | **144** | **139/144** | **144** |
 
 历史已实现（19 个，在新计划重新整合前保留）：
 
@@ -197,12 +205,12 @@
 
 | # | ID | 用例 | 标记 | 状态 | 文件 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | AL-LIST | 列表 | alert smoke | [s] | `tests/import_export_alerts/test_import_export.py::TestAlerts::test_list_alerts` — 4.1 无此端点，6.0 需要 ENABLE_ALERTS |
-| 2 | AL-CREATE | 创建 SQL 告警 | alert | [s] | `tests/import_export_alerts/test_import_export.py::TestAlerts::test_create_sql_alert` — 同上 |
-| 3 | AL-EDIT | 修改阈值 | alert | [s] | `tests/import_export_alerts/test_import_export.py::TestAlerts::test_edit_alert_threshold` — 同上 |
-| 4 | AL-DELETE | 删除 | alert | [s] | `tests/import_export_alerts/test_import_export.py::TestAlerts::test_delete_alert` — 同上 |
-| 5 | RP-CREATE | 创建报告调度 | report | [x] | `tests/import_export_alerts/test_import_export.py::TestReports::test_create_report` |
-| 6 | RP-LIST | 报告列表 | report | [x] | `tests/import_export_alerts/test_import_export.py::TestReports::test_list_reports` |
+| 1 | AL-LIST | 列表 | alert smoke | [s] | `tests/import_export_alerts/test_import_export.py::TestAlerts::test_list_alerts` — `superset_config.py` 已加 `ENABLE_ALERTS=True`，**容器需重启**才生效 |
+| 2 | AL-CREATE | 创建 SQL 告警 | alert | [s] | 同上 |
+| 3 | AL-EDIT | 修改阈值 | alert | [s] | 同上 |
+| 4 | AL-DELETE | 删除 | alert | [s] | 同上 |
+| 5 | RP-CREATE | 创建报告调度 | report | [s] | `tests/import_export_alerts/test_import_export.py::TestReports::test_create_report` — 同上 |
+| 6 | RP-LIST | 报告列表 | report | [s] | `tests/import_export_alerts/test_import_export.py::TestReports::test_list_reports` — 同上 |
 
 ### P3-A RBAC — 7 个
 
@@ -234,6 +242,70 @@
 | 2 | SET-LOGO | Logo 配置项 | misc | [x] | `tests/settings/test_rbac_embed_settings.py::TestSystemSettings::test_logo_configuration` |
 | 3 | SET-LANG | 语言切换 | misc | [x] | `tests/settings/test_rbac_embed_settings.py::TestSystemSettings::test_language_switch` |
 | 4 | SET-TZ | 时区显示 | misc | [x] | `tests/settings/test_rbac_embed_settings.py::TestSystemSettings::test_timezone_display` |
+
+### P4-A Saved Queries — 4 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | SQ-LIST | 列表 | saved_query | [x] | `tests/extras/test_p4_extras.py::TestSavedQueries::test_list_saved_queries` |
+| 2 | SQ-CREATE | 创建 | saved_query | [x] | `tests/extras/test_p4_extras.py::TestSavedQueries::test_create_saved_query` |
+| 3 | SQ-EDIT | 编辑 | saved_query | [x] | `tests/extras/test_p4_extras.py::TestSavedQueries::test_edit_saved_query` |
+| 4 | SQ-DELETE | 删除 | saved_query | [x] | `tests/extras/test_p4_extras.py::TestSavedQueries::test_delete_saved_query` |
+
+### P4-B Row Level Security — 4 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | RLS-LIST | 列表 | rls | [x] | `tests/extras/test_p4_extras.py::TestRowLevelSecurity::test_list_rls` |
+| 2 | RLS-CREATE | 创建 | rls | [x] | `tests/extras/test_p4_extras.py::TestRowLevelSecurity::test_create_rls` |
+| 3 | RLS-EDIT | 编辑 | rls | [x] | `tests/extras/test_p4_extras.py::TestRowLevelSecurity::test_edit_rls` |
+| 4 | RLS-DELETE | 删除 | rls | [x] | `tests/extras/test_p4_extras.py::TestRowLevelSecurity::test_delete_rls` |
+
+### P4-C Annotation Layer — 3 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | AN-LIST | 列表 | annotation | [x] | `tests/extras/test_p4_extras.py::TestAnnotationLayer::test_list_annotation_layers` |
+| 2 | AN-CREATE | 创建 | annotation | [x] | `tests/extras/test_p4_extras.py::TestAnnotationLayer::test_create_annotation_layer` |
+| 3 | AN-DELETE | 删除 | annotation | [x] | `tests/extras/test_p4_extras.py::TestAnnotationLayer::test_delete_annotation_layer` |
+
+### P4-D CSS Template — 2 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | CSS-LIST | 列表 | css | [x] | `tests/extras/test_p4_extras.py::TestCssTemplate::test_list_css_templates` |
+| 2 | CSS-CREATE | 创建 | css | [x] | `tests/extras/test_p4_extras.py::TestCssTemplate::test_create_css_template` |
+
+### P4-E Database introspection — 3 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | DB-SCHEMAS | 数据库 schemas | db_meta | [x] | `tests/extras/test_p4_extras.py::TestDatabaseIntrospection::test_list_schemas` |
+| 2 | DB-TABLE-META | 表元数据 | db_meta | [x] | `tests/extras/test_p4_extras.py::TestDatabaseIntrospection::test_table_metadata` |
+| 3 | DB-FUNCS | 函数列表 | db_meta | [x] | `tests/extras/test_p4_extras.py::TestDatabaseIntrospection::test_list_functions` |
+
+### P4-F Tag — 2 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | TAG-LIST | 列表 | tag | [x] | `tests/extras/test_p4_extras.py::TestTag::test_list_tags` |
+| 2 | TAG-CREATE | 创建 | tag | [s] | 4.1 POST /tag/ 返回 500；6.0 已通过 |
+
+### P4-G Chart data / explore — 4 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | CD-QUERY | chart data 查询 | chart_data | [x] | `tests/extras/test_p4_extras.py::TestChartData::test_chart_data_query` |
+| 2 | CD-AGG | chart data 聚合 | chart_data | [x] | `tests/extras/test_p4_extras.py::TestChartData::test_chart_data_query_with_metric` |
+| 3 | CD-EXPLORE | explore 端点 | chart_data | [x] | `tests/extras/test_p4_extras.py::TestChartData::test_explore_endpoint` |
+| 4 | CD-SLICE | explore slice_id | chart_data | [x] | `tests/extras/test_p4_extras.py::TestChartData::test_explore_endpoint_with_slice_id` |
+| 5 | CD-FAV | chart favorite | chart_data | [x] | `tests/extras/test_p4_extras.py::TestChartData::test_chart_favorite_status` |
+
+### P4-H SQL Lab state — 1 个
+
+| # | ID | 用例 | 标记 | 状态 | 文件 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | SQL-STATE | tab 状态 | sqllab_state | [x] | `tests/extras/test_p4_extras.py::TestSqlLabState::test_sqllab_tab_state` |
 
 ---
 

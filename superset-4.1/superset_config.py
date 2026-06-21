@@ -25,3 +25,7 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.data.api.dat
 # 文件上传
 UPLOAD_FOLDER = "/app/superset_home/uploads"
 SQLLAB_CTAS_NO_LIMIT = True
+
+# 启用 Alerts / Reports 模块（需重启容器生效）
+# 不启用时 /api/v1/alert 与 /api/v1/report 端点返回 404
+ENABLE_ALERTS = True
