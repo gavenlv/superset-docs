@@ -5,7 +5,8 @@
 > **重点**：`dashboard / charts / chart_data` 三类查询（承担 70%+ RPS）
 
 详细规划见 [PLAN.md](file:///d:/workspace/superset-space/superset-docs/e2e/perf/PLAN.md)，
-变更历史见 [CHANGELOG.md](file:///d:/workspace/superset-space/superset-docs/e2e/perf/CHANGELOG.md)。
+变更历史见 [CHANGELOG.md](file:///d:/workspace/superset-space/superset-docs/e2e/perf/CHANGELOG.md)，
+Jenkins 部署见 [docs/JENKINS.md](file:///d:/workspace/superset-space/superset-docs/e2e/perf/docs/JENKINS.md)。
 
 ## 实施状态（2026-06-21）
 

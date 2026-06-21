@@ -687,6 +687,29 @@ if __name__ == "__main__":
     main()
 ```
 
+### 9.4 Jenkins（公司内网 CI 备选）
+
+> 内部 CI 用 Jenkins（资源可控），开源 PR 用 GHA（社区友好）。两套并行，逻辑镜像。
+
+入口：[`Jenkinsfile`](file:///d:/workspace/superset-space/superset-docs/Jenkinsfile)（项目根）  
+详细文档：[`e2e/perf/docs/JENKINS.md`](file:///d:/workspace/superset-space/superset-docs/e2e/perf/docs/JENKINS.md)
+
+档位（参数化）：
+
+| 档位 | 用途 | 跑什么 | 期望时长 |
+| --- | --- | --- | ---: |
+| `pr-gate` | PR webhook 门禁 | 元测试 + k6 dashboard_list + chart_list | ~6 min |
+| `nightly` | 每晚标准压测 | Locust 10 min × {4.1, 6.0} + 重点 k6 全部 + 基线对比 | ~30 min |
+| `release` | 发布前大压 | Locust 30 min × {4.1, 6.0}（手动调 DURATION_MIN=30） | ~80 min |
+| `smoke` | pipeline 自检 | 仅 k6（不跑 Locust） | ~6 min |
+
+关键差异（vs GHA）：
+
+- Agent 必须有 `perf-runner && linux && docker` 标签（专用节点，避免与 E2E 撞资源）
+- `disableConcurrentBuilds()` 防止多构建撞 Superset
+- `archiveArtifacts` 替代 `actions/upload-artifact`
+- 凭据用 Jenkins Credentials（不硬编码在 Jenkinsfile）
+
 ---
 
 ## 10. 实施阶段（P5，重点查询优先）

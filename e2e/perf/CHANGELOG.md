@@ -12,9 +12,19 @@
   - PR gate：k6 `dashboard_list` (300 VU) + `chart_list` (200 VU)
   - nightly：Locust 10 min × {4.1, 6.0} + 重点 k6 全部
   - workflow_dispatch：手动触发，duration / version 可调
+- `Jenkinsfile`（项目根）：Jenkins Pipeline as Code
+  - 4 档参数化：`pr-gate` / `nightly` / `release` / `smoke`
+  - 与 GHA 镜像：元测试 + Locust + 重点 k6 + 基线对比 + docker stats
+  - `disableConcurrentBuilds()` / `archiveArtifacts` / `cleanup`
+- `e2e/perf/docs/JENKINS.md`：Jenkins 部署详细指南
+  - 架构总览、agent 节点要求、凭据配置
+  - 4 种触发方式（手动 / 定时 / GitHub webhook / GitLab webhook）
+  - 4 档详解、报告产物、失败判定
+  - 与 GHA 对照表、10 项快速检查清单
 - `PLAN.md` §10.1 实施进度表：标明 P5-1~P5-7 各自状态
 - `PLAN.md` §10.2 已落地文件清单
-- `README.md` 实施状态表 + 跨版本差异说明
+- `PLAN.md` §9.4 Jenkins 集成：档位表 + 与 GHA 差异
+- `README.md` 实施状态表 + 跨版本差异说明 + Jenkins 链接
 
 #### Changed
 - `PLAN.md` 状态从"草案 v1.1"更新为"v1.0 已实现"
