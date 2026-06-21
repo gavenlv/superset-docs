@@ -57,8 +57,8 @@ e2e/
 ├── pyproject.toml               # pytest 配置 + 依赖
 ├── requirements.txt             # 显式依赖列表
 ├── docs/
-│   └── QUICKSTART.md            # 一页式快速开始
-│
+│   ├── QUICKSTART.md            # 一页式快速开始
+│   └── REPORTS.md               # 报告查看指南（E2E / Locust / k6 / 基线对比）
 ├── config/                      # 多环境分层配置
 │   ├── settings.py              # 加载逻辑（yaml + env + user_pool 解析）
 │   ├── config.yaml              # base（dev）
@@ -538,6 +538,9 @@ allure serve reports/allure-results
 # 生成 HTML（适合 CI 产物）
 allure generate reports/allure-results -o reports/allure-report --clean
 ```
+
+> 详细的报告查看方法（Allure / Locust HTML / k6 / 基线对比 / 容器 metrics）见
+> [docs/REPORTS.md](./docs/REPORTS.md)。
 
 ## CI 集成
 

@@ -3,6 +3,7 @@
 Locust / k6 压测报告输出（gitignore）。子目录：
 - `locust/`  Locust CSV / HTML / current JSON / summary TXT
 - `k6/`      k6 JSON 输出
+- [`SUMMARY.md`](./SUMMARY.md) **本次工作的最终汇总报告**（元测试 / 6.0 baseline / 多环境多用户 / 文档体系 / 已知遗留）
 
 ## 报告文件说明
 

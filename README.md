@@ -352,6 +352,7 @@ Jenkins 详细部署：[`e2e/perf/docs/JENKINS.md`](./e2e/perf/docs/JENKINS.md)
 | 示例数据 | [`example-data/README.md`](./example-data/README.md) |
 | E2E 测试 | [`e2e/README.md`](./e2e/README.md) |
 | E2E 一页式入门 | [`e2e/docs/QUICKSTART.md`](./e2e/docs/QUICKSTART.md) |
+| E2E 报告查看指南 | [`e2e/docs/REPORTS.md`](./e2e/docs/REPORTS.md) |
 | E2E 配置 | [`e2e/config/README.md`](./e2e/config/README.md) |
 | E2E Fixtures | [`e2e/fixtures/README.md`](./e2e/fixtures/README.md) |
 | E2E Utils | [`e2e/utils/README.md`](./e2e/utils/README.md) |
