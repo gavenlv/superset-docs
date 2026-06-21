@@ -1,0 +1,29 @@
+Duration: 120.2s
+==============================================================================
+Endpoint                                       count   err%     p50     p95     p99  apdex  stab
+------------------------------------------------------------------------------
+GET /api/v1/chart/  (analyst)                     32   0.0%  759.5ms 1598.4ms 1795.5ms 0.641 2.36
+GET /api/v1/chart/  (viewer)                      53   0.0%  755.2ms 1890.4ms 2852.4ms 0.575 3.78
+GET /api/v1/chart/favorite_status/                 2   0.0%   81.6ms  121.7ms  125.2ms   1.0 1.53
+GET /api/v1/chart/{id}  (analyst)                 18   0.0%   58.3ms  194.8ms  216.1ms   1.0  3.7
+GET /api/v1/chart/{id}  (viewer)                  49   0.0%   60.0ms  263.2ms  396.6ms   1.0 6.61
+GET /api/v1/dashboard/  (analyst)                 19   0.0%  339.1ms  703.6ms 1202.4ms 0.921 3.55
+GET /api/v1/dashboard/  (embed)                   50   0.0%  297.2ms  940.6ms 1201.9ms  0.85 4.04
+GET /api/v1/dashboard/  (viewer)                 135   0.0%  315.9ms  809.5ms 1265.0ms 0.889  4.0
+GET /api/v1/dashboard/{id}  (analyst)             16   0.0%   75.3ms  281.8ms  330.6ms   1.0 4.39
+GET /api/v1/dashboard/{id}  (embed)               42   0.0%   71.6ms  229.6ms  298.2ms   1.0 4.17
+GET /api/v1/dashboard/{id}  (viewer)              93   0.0%   52.1ms  211.9ms  311.1ms   1.0 5.97
+GET /api/v1/dashboard/{id}/charts                 64   0.0%   47.2ms  174.5ms  280.9ms   1.0 5.95
+GET /api/v1/dashboard/{id}/datasets               53   0.0%  136.5ms  368.0ms  453.1ms   1.0 3.32
+GET /api/v1/database/1/schemas/                    2   0.0%  100.3ms  144.7ms  148.6ms   1.0 1.48
+GET /api/v1/dataset/  (analyst)                    5   0.0%   68.8ms   75.8ms   75.8ms   1.0  1.1
+GET /api/v1/explore/?slice_id=                    13   0.0%   67.4ms  167.7ms  195.9ms   1.0 2.91
+GET /api/v1/saved_query/                           1   0.0%   52.4ms   52.4ms   52.4ms   1.0  1.0
+GET /api/v1/sqllab/                                5   0.0%   66.3ms  101.2ms  107.3ms   1.0 1.62
+GET /explore/?slice_id=  (html)                    9   0.0%   33.1ms  113.7ms  142.3ms   1.0  4.3
+GET /superset/dashboard/{id}/  (embed html)       25   0.0%   45.6ms  158.6ms 1195.2ms  0.98 26.18
+GET /superset/dashboard/{id}/  (html)             35   0.0%   48.7ms  225.3ms  869.0ms 0.986 17.86
+GET /superset/welcome/                             6   0.0%   55.2ms  732.1ms  903.1ms 0.917 16.37
+POST /api/v1/chart/data  (analyst)                26   0.0%   83.6ms  222.3ms  406.6ms   1.0 4.87
+POST /api/v1/chart/data  (embed)                  30   0.0%   79.5ms  285.0ms  370.6ms   1.0 4.66
+POST /api/v1/chart/data  (viewer)                100   0.0%   87.9ms  239.6ms  437.2ms 0.995 4.97

@@ -1,0 +1,134 @@
+{
+  "version": "6.0",
+  "note": "cold-start 10 VU 2 min (env-limited; design target=200 VU)",
+  "endpoints": {
+    "GET /api/v1/chart/{id}": {
+      "count": 67,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 59.5,
+      "p95_ms": 244.8,
+      "p99_ms": 348.1
+    },
+    "GET /api/v1/dashboard/": {
+      "count": 204,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 313.5,
+      "p95_ms": 831.8,
+      "p99_ms": 1243.7
+    },
+    "GET /api/v1/chart/": {
+      "count": 85,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 756.8,
+      "p95_ms": 1780.5,
+      "p99_ms": 2454.5
+    },
+    "GET /superset/dashboard/{id}/": {
+      "count": 60,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 47.4,
+      "p95_ms": 197.5,
+      "p99_ms": 1004.9
+    },
+    "POST /api/v1/chart/data": {
+      "count": 156,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 85.6,
+      "p95_ms": 245.4,
+      "p99_ms": 419.3
+    },
+    "GET /api/v1/dashboard/{id}": {
+      "count": 151,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 60.0,
+      "p95_ms": 224.2,
+      "p99_ms": 309.6
+    },
+    "GET /api/v1/dashboard/{id}/charts": {
+      "count": 64,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 47.2,
+      "p95_ms": 174.5,
+      "p99_ms": 280.9
+    },
+    "GET /api/v1/explore/?slice_id=": {
+      "count": 13,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 67.4,
+      "p95_ms": 167.7,
+      "p99_ms": 195.9
+    },
+    "GET /api/v1/dashboard/{id}/datasets": {
+      "count": 53,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 136.5,
+      "p95_ms": 368.0,
+      "p99_ms": 453.1
+    },
+    "GET /api/v1/dataset/": {
+      "count": 5,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 68.8,
+      "p95_ms": 75.8,
+      "p99_ms": 75.8
+    },
+    "GET /superset/welcome/": {
+      "count": 6,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 55.2,
+      "p95_ms": 732.1,
+      "p99_ms": 903.1
+    },
+    "GET /explore/?slice_id=": {
+      "count": 9,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 33.1,
+      "p95_ms": 113.7,
+      "p99_ms": 142.3
+    },
+    "GET /api/v1/sqllab/": {
+      "count": 5,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 66.3,
+      "p95_ms": 101.2,
+      "p99_ms": 107.3
+    },
+    "GET /api/v1/database/1/schemas/": {
+      "count": 2,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 100.3,
+      "p95_ms": 144.7,
+      "p99_ms": 148.6
+    },
+    "GET /api/v1/saved_query/": {
+      "count": 1,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 52.4,
+      "p95_ms": 52.4,
+      "p99_ms": 52.4
+    },
+    "GET /api/v1/chart/favorite_status/": {
+      "count": 2,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 81.6,
+      "p95_ms": 121.7,
+      "p99_ms": 125.2
+    }
+  }
+}

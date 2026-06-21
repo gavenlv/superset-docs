@@ -1,0 +1,192 @@
+# Superset 性能测试 GitHub Actions
+#
+# 阶段（与 PLAN.md §9.2 一致）：
+#   - PR push  → 跑 k6 dashboard_list + chart_list（重点查询门禁）
+#   - nightly  → Locust 10 min + 全部重点 k6 脚本
+#   - release  → Locust 30 min + chart_data 5 min
+#
+# 重点查询：dashboard / charts / chart_data（占 70%+ RPS）
+name: perf
+
+on:
+  pull_request:
+    paths:
+      - "superset-4.1/**"
+      - "superset-6.0/**"
+      - "e2e/perf/**"
+      - "e2e/config/config.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "superset-4.1/**"
+      - "superset-6.0/**"
+  schedule:
+    # 每天 UTC 02:00（北京时间 10:00）跑 nightly
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "压测时长（分钟，仅 release 模式生效）"
+        default: "30"
+      version:
+        description: "Superset 版本"
+        default: "6.0"
+        type: choice
+        options: ["4.1", "6.0"]
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------------
+  # PR 门禁：k6 dashboard_list + chart_list（重点查询）
+  # 默认 5 min 反馈周期
+  # -------------------------------------------------------------------------
+  pr-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 启动 Superset 6.0
+        run: |
+          cd superset-6.0
+          docker compose up -d
+          docker compose ps
+
+      - name: 等待健康
+        run: |
+          cd e2e
+          pip install -r requirements.txt -r perf/requirements.txt
+          python perf/tools/wait_healthy.py --versions 6.0 --timeout 300
+
+      - name: 安装 k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | \
+            sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: 跑重点查询 k6 - dashboard_list (300 VU)
+        run: |
+          cd e2e
+          bash perf/tools/run_k6.sh perf/k6/scripts/dashboard_list.js
+        env:
+          SUPERSET_URL: http://localhost:18089
+          VUS: 300
+          DURATION: 3m
+
+      - name: 跑重点查询 k6 - chart_list (200 VU)
+        run: |
+          cd e2e
+          bash perf/tools/run_k6.sh perf/k6/scripts/chart_list.js
+        env:
+          SUPERSET_URL: http://localhost:18089
+          VUS: 200
+          DURATION: 2m
+
+      - name: 上传 k6 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-pr-reports
+          path: e2e/perf/reports/k6/
+
+  # -------------------------------------------------------------------------
+  # Nightly：Locust 10 min + 全部重点 k6 脚本
+  # -------------------------------------------------------------------------
+  nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 启动 Superset 4.1 + 6.0
+        run: |
+          cd superset-4.1 && docker compose up -d
+          cd ../superset-6.0 && docker compose up -d
+
+      - name: 等待健康
+        run: |
+          cd e2e
+          pip install -r requirements.txt -r perf/requirements.txt
+          python perf/tools/wait_healthy.py --versions 4.1,6.0 --timeout 300
+
+      - name: 安装 k6 + locust
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | \
+            sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          pip install locust==2.31.0
+
+      # === 4.1 ===
+      - name: Locust 4.1 (200 VU / 10 min)
+        run: |
+          cd e2e
+          PERF_TARGET_VERSION=4.1 bash perf/tools/run_locust.sh
+
+      - name: 对比 4.1 基线（strict）
+        run: |
+          cd e2e
+          python perf/tools/compare_baseline.py \
+            --version 4.1 \
+            --current perf/reports/locust/current_4.1.json \
+            --strict --exit-on-fail
+
+      # === 6.0 ===
+      - name: Locust 6.0 (200 VU / 10 min)
+        run: |
+          cd e2e
+          PERF_TARGET_VERSION=6.0 bash perf/tools/run_locust.sh
+
+      - name: 对比 6.0 基线（strict）
+        run: |
+          cd e2e
+          python perf/tools/compare_baseline.py \
+            --version 6.0 \
+            --current perf/reports/locust/current_6.0.json \
+            --strict --exit-on-fail
+
+      # === 重点 k6 脚本 ===
+      - name: 重点 k6 - chart_data (100 VU / 5 min)
+        run: |
+          cd e2e
+          bash perf/tools/run_k6.sh perf/k6/scripts/chart_data.js
+        env:
+          SUPERSET_URL: http://localhost:18089
+          VUS: 100
+          DURATION: 5m
+
+      - name: 重点 k6 - dashboard_detail (200 VU / 3 min)
+        run: |
+          cd e2e
+          bash perf/tools/run_k6.sh perf/k6/scripts/dashboard_detail.js
+        env:
+          SUPERSET_URL: http://localhost:18089
+          VUS: 200
+          DURATION: 3m
+
+      - name: 重点 k6 - dashboard_render (150 VU / 3 min)
+        run: |
+          cd e2e
+          bash perf/tools/run_k6.sh perf/k6/scripts/dashboard_render.js
+        env:
+          SUPERSET_URL: http://localhost:18089
+          VUS: 150
+          DURATION: 3m
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-nightly-reports
+          path: |
+            e2e/perf/reports/locust/
+            e2e/perf/reports/k6/

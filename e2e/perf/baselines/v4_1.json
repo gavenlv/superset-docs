@@ -1,0 +1,62 @@
+{
+  "version": "4.1.1",
+  "note": "PLACEHOLDER — 4.1 baseline pending. Cold-start Locust 200 VU / 10 min to be run on Superset 4.1 container. See e2e/perf/PLAN.md §10.1 P5-1.",
+  "endpoints": {
+    "GET /api/v1/dashboard/": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 150.0,
+      "p95_ms": 250.0,
+      "p99_ms": 500.0
+    },
+    "GET /api/v1/dashboard/{id}": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 80.0,
+      "p95_ms": 150.0,
+      "p99_ms": 300.0
+    },
+    "GET /api/v1/dashboard/{id}/charts/": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 100.0,
+      "p95_ms": 200.0,
+      "p99_ms": 400.0
+    },
+    "GET /superset/dashboard/{id}/": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 1500.0,
+      "p95_ms": 3000.0,
+      "p99_ms": 6000.0
+    },
+    "GET /api/v1/chart/": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 120.0,
+      "p95_ms": 250.0,
+      "p99_ms": 500.0
+    },
+    "GET /api/v1/chart/{id}": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 60.0,
+      "p95_ms": 120.0,
+      "p99_ms": 250.0
+    },
+    "POST /api/v1/chart/data": {
+      "count": 0,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 800.0,
+      "p95_ms": 1500.0,
+      "p99_ms": 3000.0
+    }
+  }
+}

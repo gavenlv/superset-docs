@@ -1,0 +1,255 @@
+{
+  "captured_at": 120.15904593467712,
+  "endpoints": {
+    "GET /api/v1/chart/{id}  (viewer)": {
+      "count": 49,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 60.0,
+      "p95_ms": 263.2,
+      "p99_ms": 396.6,
+      "apdex": 1.0,
+      "stability": 6.61
+    },
+    "GET /api/v1/dashboard/  (analyst)": {
+      "count": 19,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 339.1,
+      "p95_ms": 703.6,
+      "p99_ms": 1202.4,
+      "apdex": 0.921,
+      "stability": 3.55
+    },
+    "GET /api/v1/chart/  (viewer)": {
+      "count": 53,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 755.2,
+      "p95_ms": 1890.4,
+      "p99_ms": 2852.4,
+      "apdex": 0.575,
+      "stability": 3.78
+    },
+    "GET /superset/dashboard/{id}/  (embed html)": {
+      "count": 25,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 45.6,
+      "p95_ms": 158.6,
+      "p99_ms": 1195.2,
+      "apdex": 0.98,
+      "stability": 26.18
+    },
+    "POST /api/v1/chart/data  (viewer)": {
+      "count": 100,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 87.9,
+      "p95_ms": 239.6,
+      "p99_ms": 437.2,
+      "apdex": 0.995,
+      "stability": 4.97
+    },
+    "GET /api/v1/dashboard/{id}  (viewer)": {
+      "count": 93,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 52.1,
+      "p95_ms": 211.9,
+      "p99_ms": 311.1,
+      "apdex": 1.0,
+      "stability": 5.97
+    },
+    "GET /api/v1/dashboard/  (viewer)": {
+      "count": 135,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 315.9,
+      "p95_ms": 809.5,
+      "p99_ms": 1265.0,
+      "apdex": 0.889,
+      "stability": 4.0
+    },
+    "GET /api/v1/dashboard/{id}/charts": {
+      "count": 64,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 47.2,
+      "p95_ms": 174.5,
+      "p99_ms": 280.9,
+      "apdex": 1.0,
+      "stability": 5.95
+    },
+    "GET /api/v1/dashboard/  (embed)": {
+      "count": 50,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 297.2,
+      "p95_ms": 940.6,
+      "p99_ms": 1201.9,
+      "apdex": 0.85,
+      "stability": 4.04
+    },
+    "GET /api/v1/chart/  (analyst)": {
+      "count": 32,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 759.5,
+      "p95_ms": 1598.4,
+      "p99_ms": 1795.5,
+      "apdex": 0.641,
+      "stability": 2.36
+    },
+    "GET /api/v1/explore/?slice_id=": {
+      "count": 13,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 67.4,
+      "p95_ms": 167.7,
+      "p99_ms": 195.9,
+      "apdex": 1.0,
+      "stability": 2.91
+    },
+    "GET /api/v1/dashboard/{id}  (analyst)": {
+      "count": 16,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 75.3,
+      "p95_ms": 281.8,
+      "p99_ms": 330.6,
+      "apdex": 1.0,
+      "stability": 4.39
+    },
+    "GET /api/v1/chart/{id}  (analyst)": {
+      "count": 18,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 58.3,
+      "p95_ms": 194.8,
+      "p99_ms": 216.1,
+      "apdex": 1.0,
+      "stability": 3.7
+    },
+    "GET /api/v1/dashboard/{id}/datasets": {
+      "count": 53,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 136.5,
+      "p95_ms": 368.0,
+      "p99_ms": 453.1,
+      "apdex": 1.0,
+      "stability": 3.32
+    },
+    "GET /superset/dashboard/{id}/  (html)": {
+      "count": 35,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 48.7,
+      "p95_ms": 225.3,
+      "p99_ms": 869.0,
+      "apdex": 0.986,
+      "stability": 17.86
+    },
+    "GET /api/v1/dataset/  (analyst)": {
+      "count": 5,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 68.8,
+      "p95_ms": 75.8,
+      "p99_ms": 75.8,
+      "apdex": 1.0,
+      "stability": 1.1
+    },
+    "POST /api/v1/chart/data  (analyst)": {
+      "count": 26,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 83.6,
+      "p95_ms": 222.3,
+      "p99_ms": 406.6,
+      "apdex": 1.0,
+      "stability": 4.87
+    },
+    "GET /api/v1/dashboard/{id}  (embed)": {
+      "count": 42,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 71.6,
+      "p95_ms": 229.6,
+      "p99_ms": 298.2,
+      "apdex": 1.0,
+      "stability": 4.17
+    },
+    "POST /api/v1/chart/data  (embed)": {
+      "count": 30,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 79.5,
+      "p95_ms": 285.0,
+      "p99_ms": 370.6,
+      "apdex": 1.0,
+      "stability": 4.66
+    },
+    "GET /superset/welcome/": {
+      "count": 6,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 55.2,
+      "p95_ms": 732.1,
+      "p99_ms": 903.1,
+      "apdex": 0.917,
+      "stability": 16.37
+    },
+    "GET /explore/?slice_id=  (html)": {
+      "count": 9,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 33.1,
+      "p95_ms": 113.7,
+      "p99_ms": 142.3,
+      "apdex": 1.0,
+      "stability": 4.3
+    },
+    "GET /api/v1/sqllab/": {
+      "count": 5,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 66.3,
+      "p95_ms": 101.2,
+      "p99_ms": 107.3,
+      "apdex": 1.0,
+      "stability": 1.62
+    },
+    "GET /api/v1/database/1/schemas/": {
+      "count": 2,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 100.3,
+      "p95_ms": 144.7,
+      "p99_ms": 148.6,
+      "apdex": 1.0,
+      "stability": 1.48
+    },
+    "GET /api/v1/saved_query/": {
+      "count": 1,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 52.4,
+      "p95_ms": 52.4,
+      "p99_ms": 52.4,
+      "apdex": 1.0,
+      "stability": 1.0
+    },
+    "GET /api/v1/chart/favorite_status/": {
+      "count": 2,
+      "failures": 0,
+      "error_rate_pct": 0.0,
+      "p50_ms": 81.6,
+      "p95_ms": 121.7,
+      "p99_ms": 125.2,
+      "apdex": 1.0,
+      "stability": 1.53
+    }
+  }
+}

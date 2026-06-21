@@ -65,3 +65,50 @@ instances:
     compose_dir: ../superset-6.0
     postgres_container: superset-6.0-postgres
     redis_container: superset-6.0-redis
+
+# ----------------------------------------------------------------------------
+# 性能测试（重点压 dashboard / charts / chart_data）
+# ----------------------------------------------------------------------------
+perf:
+  enabled: true
+  framework: locust               # locust | k6 | both
+  duration_sec: 600               # 单次压测时长（10 分钟，更稳的 p95/p99）
+  spawn_rate: 20                  # 每秒拉起用户数（加快 ramp-up）
+  users: 200                      # 峰值用户数（提高 4x，聚焦重点查询）
+
+  # 角色权重（与 perf/locust/tasks/ 对应）
+  role_weights:
+    admin_ops: 1
+    analyst: 10
+    viewer: 30                    # 重点：dashboard / chart 读路径
+    embed: 8
+
+  # 数据集规模（可复制示例数据，模拟生产规模）
+  dataset_multiplier: 5           # 5x 示例数据（默认 25 → 125 dataset）
+
+  baseline_dir: perf/baselines
+
+  # 阈值（按类别分级；重点查询更严格）
+  thresholds:
+    p95_warn_pct: 15
+    p95_fail_pct: 20              # 重点查询统一 fail 阈值
+    p95_fail_pct_critical: 15     # chart/data 最重查询更严
+    p95_warn_pct_normal: 20
+    p95_fail_pct_normal: 50
+    error_rate_fail_pct: 0.5      # 重点查询 0.5%
+    error_rate_fail_pct_normal: 1.0
+
+  docker_metrics: true            # 抓容器 CPU/内存
+  reports_dir: perf/reports
+  k6_binary: k6                   # 或 docker run grafana/k6
+
+  # 重点查询白名单（用于精准对比）
+  # 注意：6.0 路径无尾斜杠（/charts 不带 /），payload 见 PLAN.md §5.2
+  critical_endpoints:
+    - GET:/api/v1/dashboard/
+    - GET:/api/v1/dashboard/{id}
+    - GET:/api/v1/dashboard/{id}/charts
+    - GET:/superset/dashboard/{id}/
+    - GET:/api/v1/chart/
+    - GET:/api/v1/chart/{id}
+    - POST:/api/v1/chart/data
