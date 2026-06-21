@@ -112,3 +112,26 @@ perf:
     - GET:/api/v1/chart/
     - GET:/api/v1/chart/{id}
     - POST:/api/v1/chart/data
+
+# ----------------------------------------------------------------------------
+# 多用户池（多用户并发 E2E / 性能测试）
+# ----------------------------------------------------------------------------
+# 按角色列多个用户；压测时每个 VU 拿一个用户，E2E 时按需挑用户。
+# 紧凑格式 `user/pass` 或详细格式 `username/password/label` 都可。
+# 环境专属覆盖：在 config.<env>.yaml 里同名 user_pool 段覆盖本段。
+user_pool:
+  admin:
+    - admin/admin                          # 默认 admin（与 admin_username 一致）
+    - admin_ops_1/Admin#1234               # 写路径压测
+  analyst:
+    - alpha/Alpha#1234                     # Explore / chart 写
+    - beta/Beta#1234                       # SQL Lab
+  viewer:
+    - viewer1/Viewer#1234
+    - viewer2/Viewer#1234
+    - viewer3/Viewer#1234
+    - viewer4/Viewer#1234
+    - viewer5/Viewer#1234                  # 至少 5 个 viewer，匹配 perf 200 VU 中 viewer 比例
+  embed:
+    - guest/Guest#1234
+    - guest2/Guest#1234

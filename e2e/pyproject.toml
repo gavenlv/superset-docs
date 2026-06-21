@@ -65,6 +65,10 @@ markers = [
     "tag: 标签 CRUD",
     "chart_data: 图表数据端点",
     "sqllab_state: SQL Lab 状态",
+    # P5 — 性能 / 多环境 / 多用户
+    "perf: 性能测试",
+    "multi_user: 多用户并发 / 权限 / 池子",
+    "env_specific: 环境差异相关（dev/sit/uat/prod）",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

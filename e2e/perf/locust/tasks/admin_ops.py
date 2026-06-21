@@ -69,3 +69,4 @@ class AdminOpsUser(SupersetUser):
     weight = 1
     tasks = [AdminOpsBehavior]
     wait_time = between(1.0, 3.0)
+    role = "admin"

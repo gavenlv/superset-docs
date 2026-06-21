@@ -1,0 +1,65 @@
+# UAT (User Acceptance Testing) 环境配置
+# 用法: E2E_ENV=uat python run.py -m auth
+# 或:   python run.py --env uat -m auth
+#
+# 覆盖 base config.yaml。UAT 通常是预发后的真实环境，性能基线对比用。
+
+mode: reuse
+
+instances:
+  - name: 4.1
+    version: 4.1.1
+    base_url: "https://superset-4.1.uat.example.com"
+    compose_dir: ../superset-4.1
+    postgres_container: ""
+    redis_container: ""
+
+  - name: 6.0
+    version: 6.0.0
+    base_url: "https://superset-6.0.uat.example.com"
+    compose_dir: ../superset-6.0
+    postgres_container: ""
+    redis_container: ""
+
+# UAT 性能测试：模拟生产，800 VU 是合理上限
+perf:
+  duration_sec: 900              # 15 min（长跑取 p99 drift）
+  spawn_rate: 100
+  users: 800
+
+# UAT 多用户池（更接近生产规模，20+ viewer）
+user_pool:
+  admin:
+    - {username: uat_admin, password: UatAdmin#1234, label: primary}
+    - {username: uat_admin_2, password: UatAdmin#1234, label: secondary}
+    - {username: uat_admin_3, password: UatAdmin#1234, label: backup}
+  analyst:
+    - uat_alpha/UatUser#1234
+    - uat_beta/UatUser#1234
+    - uat_gamma/UatUser#1234
+    - uat_delta/UatUser#1234
+  viewer:
+    - uat_v01/UatView#1234
+    - uat_v02/UatView#1234
+    - uat_v03/UatView#1234
+    - uat_v04/UatView#1234
+    - uat_v05/UatView#1234
+    - uat_v06/UatView#1234
+    - uat_v07/UatView#1234
+    - uat_v08/UatView#1234
+    - uat_v09/UatView#1234
+    - uat_v10/UatView#1234
+    - uat_v11/UatView#1234
+    - uat_v12/UatView#1234
+    - uat_v13/UatView#1234
+    - uat_v14/UatView#1234
+    - uat_v15/UatView#1234
+    - uat_v16/UatView#1234
+    - uat_v17/UatView#1234
+    - uat_v18/UatView#1234
+    - uat_v19/UatView#1234
+    - uat_v20/UatView#1234
+  embed:
+    - uat_embed_1/UatEmbed#1234
+    - uat_embed_2/UatEmbed#1234
+    - uat_embed_3/UatEmbed#1234

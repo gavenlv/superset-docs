@@ -4,38 +4,72 @@
 
 ## [Unreleased]
 
-### 文档整理（2026-06-21）
+### 多环境 / 多用户（2026-06-21）
 
 #### Added
-- `CHANGELOG.md`（本文件）：perf 模块独立变更记录
-- `.github/workflows/perf.yml`：GitHub Actions 工作流
-  - PR gate：k6 `dashboard_list` (300 VU) + `chart_list` (200 VU)
-  - nightly：Locust 10 min × {4.1, 6.0} + 重点 k6 全部
-  - workflow_dispatch：手动触发，duration / version 可调
-- `Jenkinsfile`（项目根）：Jenkins Pipeline as Code
-  - 4 档参数化：`pr-gate` / `nightly` / `release` / `smoke`
-  - 与 GHA 镜像：元测试 + Locust + 重点 k6 + 基线对比 + docker stats
-  - `disableConcurrentBuilds()` / `archiveArtifacts` / `cleanup`
-- `e2e/perf/docs/JENKINS.md`：Jenkins 部署详细指南
-  - 架构总览、agent 节点要求、凭据配置
-  - 4 种触发方式（手动 / 定时 / GitHub webhook / GitLab webhook）
-  - 4 档详解、报告产物、失败判定
-  - 与 GHA 对照表、10 项快速检查清单
-- `PLAN.md` §10.1 实施进度表：标明 P5-1~P5-7 各自状态
-- `PLAN.md` §10.2 已落地文件清单
-- `PLAN.md` §9.4 Jenkins 集成：档位表 + 与 GHA 差异
-- `README.md` 实施状态表 + 跨版本差异说明 + Jenkins 链接
+- `e2e/config/config.{dev,sit,uat,prod}.yaml`：环境分层配置
+  - `config.yaml` base + `<env>.yaml` deep-merge 覆盖
+  - 每个 env 独立 `user_pool` / `instances.base_url` / `perf.users/duration`
+- `e2e/utils/user_pool.py`：线程安全的 user_pool 单例
+  - `pick(role, index=None, strategy="random|round_robin")`
+  - `acquire(role)` 压测 VU 分配
+  - `token_for(user, base_url)` per-user 缓存（10 min TTL）
+  - `csrf_for(user, base_url)` 同缓存
+  - `invalidate / clear_cache` 强制重登
+- `e2e/config/settings.py` 重构：
+  - `SUPPORTED_ENVS = ("dev", "sit", "uat", "prod")`
+  - `current_env()` 从 `E2E_ENV` 读
+  - `reload_config(env)` 切换 env
+  - `User` dataclass + `user_pool: dict[role, tuple[User, ...]]`
+  - `perf: dict` 段透传
+- `e2e/fixtures/playwright_fixtures.py` 多用户 fixture：
+  - `user_pool` 暴露单例
+  - `login_as_role(role, index=None)` 工厂 fixture（独立 context）
+  - `multi_user_pages[N]` 参数化拿 N 个用户
+- `e2e/run.py` `--env` + `--list-users`：
+  - `python run.py --env sit -m smoke`
+  - `python run.py --list-users` 打印当前 env 的 user_pool
+- `e2e/perf/common/auth.py` 多用户接入：
+  - `acquire_user(role)` 给 VU 分配用户 + 绑 thread-local
+  - `get_cached_token(base_url)` per-user 拿 token
+  - 保留旧 `get_cached_token` admin 单用户路径
+- `e2e/perf/locust/tasks/base.py`：
+  - `SupersetUser.role` 类属性标注
+  - `on_start` 调 `acquire_user(self.role)`
+  - endpoint name 追加 `  (username)` 后缀，便于按用户统计
+- `e2e/perf/locust/tasks/{viewer,analyst,admin_ops,embed}.py`：
+  - `role = "..."` 类属性
+- `e2e/perf/k6/scripts/lib.js` 多用户：
+  - `K6_USERS_JSON` 环境变量传入用户池
+  - 每 VU 用 `(VU-1) % pool_size` 选用户（round-robin）
+  - `pickUser(vuId)` / `currentUsername()` 导出
+- `e2e/perf/tools/run_k6.sh` `--multi-user <role>`：
+  - 自动从 `user_pool.<role>` 拉凭据，构造 K6_USERS_JSON
+- `e2e/perf/tools/run_locust.sh`：
+  - `E2E_ENV` 切环境
+  - 启动时打印 user_pool 概览
+  - `USERS` / `SPAWN_RATE` / `RUN_TIME` 可调
+- `e2e/perf/tools/wait_healthy.py`：
+  - `--env <env>` 参数 + 切换 config
+- `e2e/tests/multi_user/test_multi_user_e2e.py`（示例）：
+  - `test_concurrent_login`：3 个 viewer 同时登录
+  - `test_admin_vs_viewer_visibility`：admin vs viewer 权限差异
+  - `test_user_pool_size`：池大小约束
+  - `test_env_specific_pool`：3 个 env 各自加载
+- `e2e/perf/tests/test_config.py` +5 元测试：
+  - `test_user_pool_has_four_roles`
+  - `test_user_pool_viewer_size_supports_load`
+  - `test_user_pool_pick_by_role`
+  - `test_user_pool_pick_by_index_is_deterministic`
+  - `test_supported_envs`
+- `e2e/perf/docs/MULTI_ENV_USER.md`：完整使用文档
+- `e2e/pyproject.toml` 新增 marker：`perf` / `multi_user` / `env_specific`
 
 #### Changed
-- `PLAN.md` 状态从"草案 v1.1"更新为"v1.0 已实现"
-- `README.md` 状态从"v1.1 实施版"更新为"v1.0 已实现"
-- 重点端点 `/api/v1/dashboard/{id}/charts/`（带尾斜杠）→ `/api/v1/dashboard/{id}/charts`（6.0 实际路径）：
-  - `PLAN.md` §5.2 / §6.1
-  - `README.md` 重点查询表
-  - `e2e/config/config.yaml` `perf.critical_endpoints`
-- `k6/scripts/lib.js`：增加每 VU token 缓存（10 min TTL），避免每轮都登录
-- `k6/scripts/chart_data.js`：增加 `SUPERSET_VERSION` 环境变量，自动切换 4.1 `slice_id` / 6.0 `datasource+queries` payload
-- `k6/scripts/dashboard_detail.js`：去除 `/charts/` 尾斜杠（6.0 兼容）
+- `config/settings.py` 增加 `env` / `user_pool` / `perf` 段
+- 旧 `login_client()` 仍可用（admin 单用户），向后兼容
+- k6 lib.js 每 VU 绑定一个用户（之前是共享 token 池）
+- Locust endpoint name 追加 `  (username)` 后缀（旧基线聚合需 strip_role）
 
 ---
 

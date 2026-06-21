@@ -1,12 +1,14 @@
 """E2E 测试运行入口。
 
 用法:
-    python run.py                                  # 复用现有服务，跑全部 smoke
+    python run.py                                  # 复用现有服务，跑全部 smoke（dev 环境）
     python run.py --mode cold                      # 冷启动
     python run.py --mode cold --browser firefox    # 冷启动 + firefox
     python run.py -k auth                          # 只跑 auth 标记
     python run.py --allure                         # 跑完生成 allure report
     python run.py --instance 4.1                  # 只跑 4.1
+    python run.py --env sit                        # 切到 SIT 环境（config.sit.yaml）
+    python run.py --env uat --mode reuse -m smoke  # UAT 上跑 smoke
 """
 from __future__ import annotations
 
@@ -23,10 +25,16 @@ if str(E2E_ROOT) not in sys.path:
     sys.path.insert(0, str(E2E_ROOT))
 
 
+# 支持的 environment（与 config.settings.SUPPORTED_ENVS 一致）
+SUPPORTED_ENVS = ("dev", "sit", "uat", "prod")
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Superset E2E runner")
     p.add_argument("--mode", choices=["cold", "reuse"], default="reuse",
                    help="cold=冷启动; reuse=复用现有服务（默认）")
+    p.add_argument("--env", choices=SUPPORTED_ENVS, default="dev",
+                   help="环境：dev(默认) / sit / uat / prod。读取 config.<env>.yaml")
     p.add_argument("--browser", choices=["chromium", "firefox", "webkit"],
                    default="chromium")
     p.add_argument("--headed", action="store_true", help="有头模式（默认 headless）")
@@ -42,6 +50,8 @@ def parse_args() -> argparse.Namespace:
                    help="先安装 playwright 浏览器再跑")
     p.add_argument("--no-deps", action="store_true",
                    help="跳过 pip install -r requirements.txt")
+    p.add_argument("--list-users", action="store_true",
+                   help="打印当前 env 的 user_pool，退出")
     p.add_argument("--pytest-args", nargs=argparse.REMAINDER,
                    help="透传给 pytest 的额外参数")
     return p.parse_args()
@@ -108,10 +118,24 @@ def main() -> int:
     args = parse_args()
     # 注入环境变量
     os.environ["E2E_MODE"] = args.mode
+    os.environ["E2E_ENV"] = args.env
     os.environ["E2E_BROWSER"] = args.browser
     os.environ["E2E_HEADLESS"] = "0" if args.headed else "1"
     os.environ["E2E_CLEANUP"] = "0" if args.no_cleanup else "1"
     os.environ["E2E_RERUNS"] = str(args.reruns)
+
+    # 列出 user_pool
+    if args.list_users:
+        from config.settings import CONFIG  # noqa: PLC0415
+        print(f">> active env = {CONFIG.env}")
+        print(f">> instances: {[(i.name, i.base_url) for i in CONFIG.instances]}")
+        print(">> user_pool:")
+        for role in CONFIG.user_pool:
+            users = CONFIG.users_for_role(role)
+            print(f"   {role:>8}  ({len(users)} users)")
+            for u in users:
+                print(f"     - {u.username}  label={u.label}")
+        return 0
 
     if not args.no_deps:
         ensure_python_deps()
@@ -119,6 +143,7 @@ def main() -> int:
         ensure_browsers()
 
     cmd = build_pytest_cmd(args)
+    print(f">> env={args.env} mode={args.mode} browser={args.browser}")
     print(">> running:", " ".join(cmd))
     proc = subprocess.run(cmd, cwd=str(E2E_ROOT))
     rc = proc.returncode

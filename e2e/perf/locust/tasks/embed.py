@@ -71,3 +71,4 @@ class EmbedUser(SupersetUser):
     weight = 8
     tasks = [EmbedBehavior]
     wait_time = between(0.5, 2.0)
+    role = "embed"

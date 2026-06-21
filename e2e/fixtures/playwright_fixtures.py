@@ -140,3 +140,117 @@ def logged_in_page(
     lp.login(CONFIG.admin_username, CONFIG.admin_password)
     logger.info("[%s] logged in, current url: %s", superset_instance.instance.name, page.url)
     return page
+
+
+# ---------------------------------------------------------------------------
+# 多用户登录 fixture（多用户并发 / 权限测试用）
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def user_pool():
+    """暴露 user_pool 单例（singleton）。"""
+    from utils.user_pool import user_pool
+    return user_pool
+
+
+@pytest.fixture()
+def login_as_role(superset_instance: ServiceState, browser: Browser):
+    """工厂 fixture：login_as_role(role, index=None) 返回已登录 page（独立 context）。
+
+    用法：
+        def test_xxx(login_as_role):
+            page = login_as_role("viewer", index=0)        # 固定 viewer[0]
+            page2 = login_as_role("viewer", index=1)       # 固定 viewer[1]
+            page3 = login_as_role("viewer")                # 随机 viewer
+    """
+    pages: list[tuple[Page, BrowserContext]] = []
+
+    def _factory(role: str, *, index: int | None = None) -> Page:
+        from pages.login_page import LoginPage
+        from utils.user_pool import user_pool
+
+        user = user_pool.pick(role, index=index)
+        base = superset_instance.instance.base_url
+        ctx: BrowserContext = browser.new_context(
+            viewport={"width": 1440, "height": 900},
+            ignore_https_errors=True,
+            locale="en-US",
+        )
+        ctx.set_default_timeout(CONFIG.page_timeout_ms)
+        ctx.set_default_navigation_timeout(CONFIG.navigation_timeout_ms)
+        p = ctx.new_page()
+        pages.append((p, ctx))
+        lp = LoginPage(p, base)
+        lp.goto()
+        lp.login(user.username, user.password)
+        logger.info(
+            "[%s] login_as_role(%s) user=%s label=%s",
+            superset_instance.instance.name, role, user.username, user.label,
+        )
+        return p
+
+    yield _factory
+
+    for p, ctx in pages:
+        try:
+            p.close()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+@pytest.fixture()
+def multi_user_pages(
+    superset_instance: ServiceState,
+    request,
+):
+    """参数化多用户 fixture：从 user_pool 拿 N 个不同用户，每个一个 page。
+
+    用法：
+        @pytest.mark.parametrize("multi_user_pages", [3], indirect=True)
+        def test_concurrent_login(multi_user_pages):
+            page1, page2, page3 = multi_user_pages
+            ...
+
+    或者直接通过 marker：
+        @pytest.mark.multi_user(3)
+        def test_xxx(multi_user_pages): ...
+    """
+    from pages.login_page import LoginPage
+    from utils.user_pool import user_pool
+
+    n = getattr(request, "param", 1) or 1
+    base = superset_instance.instance.base_url
+    role = "viewer"  # 默认 viewer（测试中可重写）
+
+    browser = request.getfixturevalue("browser")
+    out: list[Page] = []
+    contexts: list = []
+    for i in range(n):
+        user = user_pool.pick(role, index=i)
+        ctx = browser.new_context(
+            viewport={"width": 1440, "height": 900},
+            ignore_https_errors=True,
+            locale="en-US",
+        )
+        ctx.set_default_timeout(CONFIG.page_timeout_ms)
+        ctx.set_default_navigation_timeout(CONFIG.navigation_timeout_ms)
+        p = ctx.new_page()
+        lp = LoginPage(p, base)
+        lp.goto()
+        lp.login(user.username, user.password)
+        out.append(p)
+        contexts.append(ctx)
+    yield out
+    for p, ctx in zip(out, contexts):
+        try:
+            p.close()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass

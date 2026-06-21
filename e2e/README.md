@@ -5,6 +5,7 @@
 ## 目录
 
 - [技术栈](#技术栈)
+- [核心特性](#核心特性)
 - [目录结构](#目录结构)
 - [快速开始](#快速开始)
 - [运行模式](#运行模式)
@@ -12,6 +13,8 @@
 - [标记 (markers)](#标记-markers)
 - [编写新测试](#编写新测试)
 - [配置与环境变量](#配置与环境变量)
+- [多环境与多用户](#多环境与多用户)
+- [性能测试入口](#性能测试入口)
 - [稳定性策略](#稳定性策略)
 - [Allure 报告](#allure-报告)
 - [CI 集成](#ci-集成)
@@ -31,23 +34,41 @@
 | 配置           | PyYAML + python-dotenv        |
 | Page Object    | 自研封装 + utils/stability.py |
 
+## 核心特性
+
+| 维度 | 覆盖 |
+| --- | --- |
+| 多版本 | Superset 4.1.1 + 6.0.0，参数化自动遍历 |
+| 多环境 | dev / sit / uat / prod 4 档，配置独立 |
+| 多用户 | per-role 用户池（admin/analyst/viewer/embed），支持 200+ VU |
+| E2E UI | Playwright 自动化（4.1 SSR / 6.0 SPA 兼容） |
+| E2E API | httpx 调用，含 CSRF + JWT |
+| 多用户 fixture | `login_as_role` / `multi_user_pages` 工厂 |
+| 性能压测 | Locust（4 角色 28 task）+ k6（9 脚本 重点查询） |
+| 基线对比 | p50/p95/p99 + error rate，critical 端点严格阈值 |
+| 报告 | Allure HTML + Locust 原生 + k6 JSON + docker stats CSV |
+
 ## 目录结构
 
 ```
 e2e/
 ├── conftest.py                  # 顶层 fixture 入口（聚合 fixtures/）
-├── run.py                       # CLI 入口
+├── run.py                       # CLI 入口（支持 --env / --list-users）
 ├── pyproject.toml               # pytest 配置 + 依赖
 ├── requirements.txt             # 显式依赖列表
-├── pytest.ini 或 pyproject.toml
+├── docs/
+│   └── QUICKSTART.md            # 一页式快速开始
 │
-├── config/
-│   ├── settings.py              # 配置加载（yaml + env）
-│   └── config.yaml              # 默认配置（端口、超时、实例列表）
+├── config/                      # 多环境分层配置
+│   ├── settings.py              # 加载逻辑（yaml + env + user_pool 解析）
+│   ├── config.yaml              # base（dev）
+│   ├── config.sit.yaml          # SIT 覆盖
+│   ├── config.uat.yaml          # UAT 覆盖
+│   └── config.prod.yaml         # PROD 覆盖
 │
-├── fixtures/
+├── fixtures/                    # pytest fixtures
 │   ├── conftest.py              # 服务生命周期 fixture（cold/reuse）
-│   ├── playwright_fixtures.py   # 浏览器、context、登录 page
+│   ├── playwright_fixtures.py   # 浏览器、context、login_as_role、multi_user_pages
 │   └── allure_config.py         # Allure 环境/分类 hook
 │
 ├── pages/                       # Page Object Model
@@ -56,11 +77,14 @@ e2e/
 │   ├── explore_page.py          # Explore 图表编辑
 │   └── sqllab_page.py           # SQL Lab（兼容 ant-table 与 sql-result-table）
 │
-├── utils/
+├── utils/                       # 工具
 │   ├── process.py               # 子进程 + HTTP 等待工具
 │   ├── service.py               # docker compose 编排（cold/reuse）
 │   ├── stability.py             # 健壮选择器、轮询等待、健壮点击
-│   └── logging.py               # 日志初始化
+│   ├── logging.py               # 日志初始化
+│   ├── bdd.py                   # Given/When/Then 上下文管理器
+│   ├── page_actions.py          # 高亮 Playwright 包装
+│   └── user_pool.py             # 多用户池（多环境 / 多用户并发）
 │
 ├── tests/                       # 测试用例
 │   ├── conftest.py              # 测试级别 fixture 补充
@@ -69,12 +93,30 @@ e2e/
 │   ├── dashboards/              # 仪表盘列表 / 详情 / 交互
 │   ├── charts/                  # 单图表
 │   ├── sqllab/                  # SQL Lab（页面、查询）
-│   └── databases/               # 数据库 / 数据集
+│   ├── databases/               # 数据库 / 数据集
+│   ├── import_export_alerts/    # 导入导出 / 告警
+│   ├── extras/                  # 补充
+│   ├── settings/                # RBAC / embed settings
+│   └── multi_user/              # 多用户并发 E2E
 │
-└── reports/                     # 运行时产物（已 gitignore）
-    ├── allure-results/          # Allure 原始数据
-    ├── allure-report/           # Allure HTML
-    └── screenshots/             # 失败截图
+├── spec/                        # BDD feature 文件（English）
+│
+├── reports/                     # 运行时产物
+│
+└── perf/                        # 性能测试套件（详见 e2e/perf/README.md）
+    ├── README.md
+    ├── PLAN.md
+    ├── CHANGELOG.md
+    ├── docs/
+    │   ├── JENKINS.md
+    │   └── MULTI_ENV_USER.md
+    ├── common/                  # 6 个共享模块
+    ├── locust/                  # Locust 4 角色 + LoginStorm
+    ├── k6/scripts/              # 9 个 k6 脚本
+    ├── baselines/               # 基线 JSON
+    ├── reports/                 # 压测报告
+    ├── tools/                   # 辅助脚本
+    └── tests/                   # 元测试
 ```
 
 ## 快速开始
@@ -171,6 +213,7 @@ allure generate reports/allure-results -o reports/allure-report --clean
 | 参数                    | 说明                                       | 默认值     |
 | ----------------------- | ------------------------------------------ | ---------- |
 | `--mode {cold,reuse}`   | 服务启动模式                               | `reuse`    |
+| `--env {dev,sit,uat,prod}` | 切换环境（加载 `config.<env>.yaml` 覆盖） | `dev`      |
 | `--instance {4.1,6.0,all}` | 限定版本                                  | `all`      |
 | `-m, --marker`          | pytest marker 过滤（如 `smoke`、`auth`）   |            |
 | `-k, --keyword`         | pytest 关键字过滤                          |            |
@@ -182,6 +225,7 @@ allure generate reports/allure-results -o reports/allure-report --clean
 | `--allure`              | 跑完后生成 Allure HTML 报告                | `false`    |
 | `--install-browsers`    | 先 `playwright install` 再跑               | `false`    |
 | `--no-deps`             | 跳过 `pip install -r requirements.txt`     | `false`    |
+| `--list-users`          | 打印当前 env 的 user_pool（诊断用）        | `false`    |
 | `--pytest-args`         | 透传给 pytest 的额外参数                   |            |
 
 示例：
@@ -198,22 +242,29 @@ python run.py --pytest-args -x -v
 
 # 在 6.0 上跑 health marker，并生成报告
 python run.py --instance 6.0 -m health --allure
+
+# 在 SIT 环境上跑 multi_user
+python run.py --env sit -m multi_user
+
+# 列出 SIT 环境的 user_pool
+python run.py --env sit --list-users
 ```
 
 ## 标记 (markers)
 
-| Marker      | 说明                  | 用例示例                          |
-| ----------- | --------------------- | --------------------------------- |
-| `smoke`     | 冒烟测试，必跑        | `test_health`、`test_login`       |
-| `auth`      | 认证                  | `test_login.py`                   |
-| `dashboard` | 仪表盘                | `test_dashboards.py`              |
-| `chart`     | 图表                  | `test_charts.py`                  |
-| `sqllab`    | SQL Lab               | `test_sqllab.py`                  |
-| `database`  | 数据库 / 数据集       | `test_databases.py`               |
-| `health`    | 健康检查              | `test_health.py`                  |
-| `slow`      | 耗时较长，可能跳过    | `test_run_simple_query`           |
+| Marker        | 说明                  | 用例示例                          |
+| ------------- | --------------------- | --------------------------------- |
+| `smoke`       | 冒烟测试，必跑        | `test_health`、`test_login`       |
+| `auth`        | 认证                  | `test_login.py`                   |
+| `dashboard`   | 仪表盘                | `test_dashboards.py`              |
+| `chart`       | 图表                  | `test_charts.py`                  |
+| `sqllab`      | SQL Lab               | `test_sqllab.py`                  |
+| `database`    | 数据库 / 数据集       | `test_databases.py`               |
+| `health`      | 健康检查              | `test_health.py`                  |
+| `slow`        | 耗时较长，可能跳过    | `test_run_simple_query`           |
+| `multi_user`  | 多用户并发 E2E        | `tests/multi_user/test_multi_user_e2e.py` |
 
-`smoke` 应保持稳定并 ≤ 5 分钟；`slow` 可在 CI 中按需运行。
+`smoke` 应保持稳定并 ≤ 5 分钟；`slow` 可在 CI 中按需运行；`multi_user` 需要 user_pool 有足够用户（viewer ≥ 5）。
 
 ## 编写新测试
 
@@ -312,6 +363,140 @@ instances:
 | `E2E_BASE_URL_4_1`       | 4.1 base URL                  | `http://localhost:18088`        |
 | `E2E_BASE_URL_6_0`       | 6.0 base URL                  | `http://localhost:18089`        |
 | `E2E_LOG_LEVEL`          | 日志级别                      | `INFO`                          |
+| `E2E_ENV`                | dev / sit / uat / prod        | `dev`                           |
+| `E2E_BASE_URL_<ENV>_<VER>` | env 维度 base URL 覆盖        | （与 yaml 一致）                |
+
+## 多环境与多用户
+
+E2E 与性能测试共用一套配置和用户池，支持 4 套环境（dev/sit/uat/prod）和 per-role 多用户池。
+
+### 多环境分层配置
+
+`config/` 下放 base + 各 env 覆盖：
+
+```
+config/
+├── config.yaml          # base（dev）
+├── config.sit.yaml      # SIT 覆盖
+├── config.uat.yaml      # UAT 覆盖
+└── config.prod.yaml     # PROD 覆盖
+```
+
+加载规则：`config.<env>.yaml` 深度合并到 `config.yaml` 之上，env 层优先级最高。env 段字段（`instances`、`user_pool`、`perf.thresholds` 等）按需覆盖。
+
+切换环境：
+
+```bash
+# dev（默认）
+python run.py -m smoke
+
+# SIT
+python run.py --env sit -m smoke
+E2E_ENV=uat python run.py -m multi_user
+
+# 打印当前 env 的 user_pool
+python run.py --env sit --list-users
+```
+
+SIT/UAT/PROD 典型差异：
+
+| 维度 | dev | sit | uat | prod |
+| --- | --- | --- | --- | --- |
+| `base_url` | localhost:18089 | sit.example.com | uat.example.com | prod.example.com |
+| `user_pool.viewer` | 5 | 20 | 50 | 200+ |
+| `perf.users` | 200 | 500 | 1000 | 2000 |
+| `cleanup_on_exit` | true | false | false | false |
+
+### 多用户池（per-role）
+
+`config/config.yaml` 顶层 `user_pool` 段：
+
+```yaml
+user_pool:
+  admin:
+    - admin/admin
+    - admin_ops_1/Admin#1234
+  analyst:
+    - alpha/Alpha#1234
+    - beta/Beta#1234
+  viewer:                          # 至少 5 个（支持 100+ VU 压测）
+    - viewer1/Viewer#1234
+    - viewer2/Viewer#1234
+    - viewer3/Viewer#1234
+    - viewer4/Viewer#1234
+    - viewer5/Viewer#1234
+  embed:
+    - guest/Guest#1234
+    - guest2/Guest#1234
+```
+
+支持两种格式：紧凑 `user/pass` 或详细 `{username, password, label}`。详细文档见 [config/README.md](./config/README.md)。
+
+### 多用户 E2E fixture
+
+`fixtures/playwright_fixtures.py` 提供两个工厂：
+
+```python
+from utils import page_actions as pa
+
+
+def test_two_viewers_concurrent(login_as_role, superset_instance):
+    """工厂 fixture：按角色拿不同 user，登录到独立 page。"""
+    p1 = login_as_role("viewer", index=0)   # 固定 viewer[0]
+    p2 = login_as_role("viewer", index=1)   # 固定 viewer[1]
+    # 或 p3 = login_as_role("viewer")        # 随机 viewer
+
+
+@pytest.mark.multi_user(3)
+@pytest.mark.scenario("Multi-user", tags=("multi_user",))
+def test_three_users(multi_user_pages, superset_instance):
+    """参数化多用户 fixture：拿 N 个不同 user，每个一个 page。"""
+    p1, p2, p3 = multi_user_pages
+    # 验证 3 个 page 完全隔离
+    for p in (p1, p2, p3):
+        assert "/login/" not in p.url
+```
+
+`utils/user_pool.py::user_pool` 是单例，提供：
+
+```python
+from utils.user_pool import user_pool
+
+viewer = user_pool.pick("viewer")                    # 随机
+v1     = user_pool.pick("viewer", index=1)           # 索引
+v2     = user_pool.pick("viewer", strategy="round_robin")  # 轮询
+token  = user_pool.token_for(viewer, base_url)       # 线程安全 token 缓存
+```
+
+详细使用：[fixtures/README.md](./fixtures/README.md)、[utils/README.md](./utils/README.md)。
+
+## 性能测试入口
+
+`perf/` 子模块提供 Locust + k6 双框架性能测试，**与 E2E 共享配置和 user_pool**。
+
+```bash
+# 装依赖
+pip install -r perf/requirements.txt
+sudo apt-get install k6   # Linux；macOS: brew install k6
+
+# Locust 200 VU / 10 min（默认 dev 6.0）
+bash perf/tools/run_locust.sh
+
+# Locust 在 SIT 环境跑（自动用 SIT 的 user_pool）
+E2E_ENV=sit bash perf/tools/run_locust.sh
+
+# k6 重点查询
+bash perf/tools/run_k6.sh perf/k6/scripts/dashboard_list.js   # 300 VU
+bash perf/tools/run_k6.sh perf/k6/scripts/chart_data.js       # 100 VU / 5 min
+
+# 对比基线（strict 模式）
+python perf/tools/compare_baseline.py \
+    --version 6.0 \
+    --current perf/reports/locust/current_6.0.json \
+    --strict --exit-on-fail
+```
+
+完整文档：[perf/README.md](./perf/README.md)、[perf/PLAN.md](./perf/PLAN.md)、[perf/docs/MULTI_ENV_USER.md](./perf/docs/MULTI_ENV_USER.md)、[perf/docs/JENKINS.md](./perf/docs/JENKINS.md)。
 
 ## 稳定性策略
 
@@ -407,6 +592,10 @@ jobs:
 | `Connection refused`                          | Superset 未启动或端口不对；先 `curl http://localhost:18088/health` 验证              |
 | 浏览器下载慢                                  | 设置 `PLAYWRIGHT_DOWNLOAD_HOST` 镜像；或复用 `~/.cache/ms-playwright/` 已下载的浏览器 |
 | Allure 命令找不到                             | `npm i -g allure-commandline` 或 `scoop install allure`                             |
+| `unsupported E2E_ENV`                         | 只支持 dev / sit / uat / prod；写错时 `settings.current_env` 抛错                   |
+| `user_pool empty` for role                    | `python run.py --list-users` 检查；SIT/UAT 需在 `config.<env>.yaml` 里写 user_pool |
+| `login failed: 401` in multi_user             | 池里的用户名/密码与 env 不匹配；用 `--list-users` 校对                               |
+| Locust/k6 找不到 user                         | 性能脚本会自动 fallback 到 admin；多用户需设 `E2E_ENV` 触发对应 env 配置             |
 
 ## 清理临时文件
 
@@ -440,3 +629,17 @@ rm -rf .playwright
 | `tests/charts/`     | 图表列表、单图表加载、Explore 编辑器                     |
 | `tests/dashboards/` | 仪表盘列表、详情、图表嵌入、过滤器                       |
 | `tests/sqllab/`     | SQL Lab 页面加载、数据库下拉、查询执行（CSRF 受限场景 skip） |
+| `tests/import_export_alerts/` | 导入导出 / 告警                                |
+| `tests/extras/`     | 补充测试（extras）                                       |
+| `tests/settings/`   | RBAC / embed settings                                    |
+| `tests/multi_user/` | 多用户并发 E2E（session 隔离 / 权限差异）                 |
+
+## 性能测试索引
+
+| 入口 | 说明 |
+| --- | --- |
+| `perf/README.md` | 总览 |
+| `perf/PLAN.md` | 详细规划 |
+| `perf/CHANGELOG.md` | 变更日志 |
+| `perf/docs/MULTI_ENV_USER.md` | 多环境 / 多用户 |
+| `perf/docs/JENKINS.md` | Jenkins 部署 |

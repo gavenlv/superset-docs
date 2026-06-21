@@ -1,0 +1,55 @@
+# SIT (System Integration Testing) 环境配置
+# 用法: E2E_ENV=sit python run.py -m auth
+# 或:   python run.py --env sit -m auth
+#
+# 覆盖 base config.yaml。SIT 容器或服务地址、SIT 专属凭据都改这里。
+
+# SIT 模式：cold 由 run.py 触发，但 SIT 部署通常已有实例，强制 reuse
+mode: reuse
+
+# SIT 容器/服务地址（按公司内网约定调整）
+# 常见 SIT 是 K8s 部署，没有容器名概念，postgres_container/redis_container 留空
+instances:
+  - name: 4.1
+    version: 4.1.1
+    base_url: "https://superset-4.1.sit.internal.example.com"
+    compose_dir: ../superset-4.1   # 留作 reference，容器名占位
+    postgres_container: ""         # SIT 外部 PG，不在 docker 里
+    redis_container: ""
+
+  - name: 6.0
+    version: 6.0.0
+    base_url: "https://superset-6.0.sit.internal.example.com"
+    compose_dir: ../superset-6.0
+    postgres_container: ""
+    redis_container: ""
+
+# 性能测试：SIT 通常是预发前一轮，可加大压
+perf:
+  duration_sec: 600
+  spawn_rate: 50
+  users: 500
+
+# SIT 多用户池（按角色列 10+ 用户，对应 SIT 的预置账号）
+user_pool:
+  admin:
+    - {username: sit_admin_1, password: SitAdmin#1234, label: ops-lead}
+    - {username: sit_admin_2, password: SitAdmin#1234, label: ops-backup}
+  analyst:
+    - {username: sit_alpha,  password: SitUser#1234, label: alpha}
+    - {username: sit_beta,   password: SitUser#1234, label: beta}
+    - {username: sit_gamma,  password: SitUser#1234, label: gamma}
+  viewer:
+    - sit_viewer_01/SitView#1234
+    - sit_viewer_02/SitView#1234
+    - sit_viewer_03/SitView#1234
+    - sit_viewer_04/SitView#1234
+    - sit_viewer_05/SitView#1234
+    - sit_viewer_06/SitView#1234
+    - sit_viewer_07/SitView#1234
+    - sit_viewer_08/SitView#1234
+    - sit_viewer_09/SitView#1234
+    - sit_viewer_10/SitView#1234
+  embed:
+    - sit_guest/SitGuest#1234
+    - sit_guest2/SitGuest#1234

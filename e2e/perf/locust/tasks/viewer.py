@@ -137,3 +137,4 @@ class ViewerUser(SupersetUser):
     weight = 30
     tasks = [ViewerBehavior]
     wait_time = between(0.3, 1.5)  # Viewer 节奏更密集
+    role = "viewer"

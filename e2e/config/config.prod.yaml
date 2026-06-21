@@ -1,0 +1,39 @@
+# PROD (Production) 环境配置
+# ⚠️ PROD 跑 perf/E2E 是受控的，遵守变更窗口
+# 用法: E2E_ENV=prod python run.py -m smoke
+#
+# 建议只跑 smoke + 抽样 E2E，不跑 Locust 大压。
+
+mode: reuse
+
+instances:
+  - name: 4.1
+    version: 4.1.1
+    base_url: "https://superset.example.com"      # 主域名
+    compose_dir: ../superset-4.1
+    postgres_container: ""
+    redis_container: ""
+
+  - name: 6.0
+    version: 6.0.0
+    base_url: "https://superset-new.example.com"   # 新版独立域名
+    compose_dir: ../superset-6.0
+    postgres_container: ""
+    redis_container: ""
+
+# PROD 性能：仅 smoke，不跑 Locust
+perf:
+  duration_sec: 60
+  spawn_rate: 5
+  users: 30                     # smoke 级别
+
+# PROD 用户池：极小（跑 E2E 抽样时使用，不暴露真实密码）
+user_pool:
+  admin:
+    - {username: e2e_admin, password: ${PROD_E2E_ADMIN_PWD}, label: e2e-service}
+  analyst:
+    - {username: e2e_analyst, password: ${PROD_E2E_ANALYST_PWD}, label: e2e-service}
+  viewer:
+    - {username: e2e_viewer, password: ${PROD_E2E_VIEWER_PWD}, label: e2e-service}
+  embed:
+    - {username: e2e_embed, password: ${PROD_E2E_EMBED_PWD}, label: e2e-service}

@@ -2,9 +2,16 @@
 
 - SupersetUser: 登录并预热 ID 缓存
 - BaseBehavior: TaskSet 基类，提供 _timed_request / _get_dashboard_id 等 helper
+
+多用户接入：
+- 角色 → User 类映射：{admin_ops: AdminOpsUser, analyst: AnalystUser, ...}
+- 每个 SupersetUser 子类在 on_start 里调 `acquire_user(role)` 从用户池拿一个 user
+- token / csrf 走 user_pool 的 per-user 缓存
 """
 from __future__ import annotations
 
+import logging
+import os
 import random
 import time
 from typing import Any
@@ -12,12 +19,18 @@ from typing import Any
 from locust import HttpUser, task, between, events
 from locust import TaskSet
 
-from perf.common.auth import get_cached_token
+from perf.common.auth import acquire_user, get_cached_token
 from perf.common.metrics import MetricsCollector
+
+logger = logging.getLogger(__name__)
 
 
 # 全局 metrics 聚合（被各 user 共享）
 GLOBAL_METRICS = MetricsCollector()
+
+
+# 角色 → 池子里的 role 名（locustfile 用）
+ROLE_NAMES = ("admin_ops", "analyst", "viewer", "embed")
 
 
 class BaseBehavior(TaskSet):
@@ -58,7 +71,12 @@ class BaseBehavior(TaskSet):
         except Exception:  # noqa: BLE001
             success = False
         latency_ms = (time.perf_counter() - start) * 1000
-        GLOBAL_METRICS.record(name or f"{method} {path}", latency_ms, success)
+        # 在 name 上追加当前用户名后缀，便于按用户定位
+        username = getattr(self.user, "_assigned_username", "")
+        endpoint_name = name or f"{method} {path}"
+        if username and username not in endpoint_name:
+            endpoint_name = f"{endpoint_name}  ({username})"
+        GLOBAL_METRICS.record(endpoint_name, latency_ms, success)
         return status, latency_ms
 
     def _get_dashboard_id(self) -> int | None:
@@ -86,11 +104,19 @@ class SupersetUser(HttpUser):
     abstract = True
     wait_time = between(0.5, 2.0)
 
+    # 由子类覆盖的角色名（admin_ops / analyst / viewer / embed）
+    role: str = "viewer"
+
     # 由 locustfile 注入的版本（"4.1" / "6.0"）
     superset_version: str = "6.0"
 
     def on_start(self) -> None:
         """登录并初始化。"""
+        # 多用户池：从池里拿一个 user（round_robin），绑到当前线程
+        user = acquire_user(self.role)
+        self._assigned_username = user.username
+        self._assigned_label = user.label
+
         token = get_cached_token(self.host)
         self.client.headers.update({"Authorization": f"Bearer {token}"})
 
@@ -99,6 +125,15 @@ class SupersetUser(HttpUser):
         self._chart_ids: list[int] = []
         self._dataset_ids: list[int] = []
         self._prime_ids()
+
+    def on_stop(self) -> None:
+        """VU 退出：归还用户。"""
+        from perf.common.auth import current_user
+        from utils.user_pool import user_pool
+
+        u = current_user()
+        if u is not None:
+            user_pool.release(u)
 
     def _prime_ids(self) -> None:
         """拉一次列表，缓存 ID。失败不阻塞（用空列表继续）。"""
@@ -139,7 +174,7 @@ def _on_test_stop(environment, **kwargs) -> None:  # noqa: ARG001
 
     cfg = get_perf_config()
     reports_dir = Path(cfg.get("reports_dir", "perf/reports"))
-    target_version = "6.0"  # 默认写 6.0；CI 可通过环境变量覆盖
+    target_version = os.environ.get("PERF_TARGET_VERSION", "6.0")
     out_dir = reports_dir / "locust"
     write_json_snapshot(
         GLOBAL_METRICS.snapshot(),

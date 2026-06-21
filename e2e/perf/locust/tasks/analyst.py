@@ -136,3 +136,4 @@ class AnalystUser(SupersetUser):
     weight = 10
     tasks = [AnalystBehavior]
     wait_time = between(0.5, 2.0)
+    role = "analyst"
