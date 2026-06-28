@@ -8,6 +8,7 @@
 |-----|---------|------|
 | **新手入门** | [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) | 从零开始，跑第一个测试 |
 | **快速上手** | [docs/QUICKSTART.md](./docs/QUICKSTART.md) | 5 分钟跑通所有测试 |
+| **离线 Examples** | [docs/GETTING_STARTED.md#附录离线-examples-数据导入](./docs/GETTING_STARTED.md#附录离线-examples-数据导入) | 理解 examples 离线导入机制 |
 | **理解设计** | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 知道「为什么」这么设计 |
 | **查看报告** | [docs/REPORTS.md](./docs/REPORTS.md) | E2E / 性能测试报告查看 |
 | **多环境配置** | [config/README.md](./config/README.md) | 配置 dev/sit/uat/prod |

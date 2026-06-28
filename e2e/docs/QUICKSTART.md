@@ -40,6 +40,8 @@ curl http://localhost:18088/health   # 4.1 → OK
 curl http://localhost:18089/health   # 6.0 → OK
 ```
 
+> 💡 **离线 Examples 机制**：示例数据（birth_names, energy, sales 等）已打包在 `example-data/` 目录，通过 volume 挂载到容器实现完全离线加载。详细说明见 [GETTING_STARTED.md §附录：离线 Examples 数据导入](./GETTING_STARTED.md#附录离线-examples-数据导入)。
+
 ## 2. 装 E2E 依赖
 
 ```bash
@@ -177,6 +179,8 @@ pytest perf/tests/ -v                       # 18 个元测试
 | `CSRF token is missing` | 写操作需 CSRF；走 API |
 | `k6: not found` | `apt-get install k6` / `brew install k6` |
 | `locust: GBK` | Windows: `set PYTHONUTF8=1` + `set PYTHONIOENCODING=utf-8` |
+| Examples 加载失败 | 检查 `superset-init` 日志；确认 `example-data/` 已挂载 |
+| `init` 容器一直 Running | 正常，首次需要 4-5 min 加载数据 |
 
 更多：[e2e/README.md §故障排查](../README.md#故障排查)。
 
