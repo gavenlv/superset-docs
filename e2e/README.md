@@ -2,6 +2,43 @@
 
 针对 Superset 4.1 与 6.0 的端到端自动化测试框架。支持 UI（Playwright）+ API（httpx）+ 数据库多层验证；参数化双版本；冷启动 / 复用服务两种模式；Allure 报告 + 自动重试 + 失败截图。
 
+## 📚 学习路径
+
+| 角色 | 推荐文档 | 目标 |
+|-----|---------|------|
+| **新手入门** | [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) | 从零开始，跑第一个测试 |
+| **快速上手** | [docs/QUICKSTART.md](./docs/QUICKSTART.md) | 5 分钟跑通所有测试 |
+| **理解设计** | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 知道「为什么」这么设计 |
+| **查看报告** | [docs/REPORTS.md](./docs/REPORTS.md) | E2E / 性能测试报告查看 |
+| **多环境配置** | [config/README.md](./config/README.md) | 配置 dev/sit/uat/prod |
+
+## 🏗️ 架构概览
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        测试用例层 (tests/)                          │
+│  test_login.py  │  test_dashboard.py  │  test_charts.py            │
+│  业务场景描述，用 BDD 风格（Given/When/Then）                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                      Page Object 层 (pages/)                        │
+│  LoginPage  │  DashboardPage  │  ExplorePage  │  SqlLabPage        │
+│  封装页面交互，屏蔽 4.1/6.0 DOM 差异                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                    Page Actions 层 (utils/page_actions.py)          │
+│  pa.click() │  pa.fill() │  pa.goto() │  pa.hover()               │
+│  增强 Playwright 操作：高亮 + Allure step + 延迟观察                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                      基础设施层                                     │
+│  config/       → 多环境配置（yaml + env 变量）                       │
+│  fixtures/     → pytest 夹具（浏览器、登录、多用户）                  │
+│  utils/        → 工具（BDD、稳定性、日志、用户池）                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                    性能测试层 (perf/)                               │
+│  Locust 多角色压测 │  k6 单端点高压 │  基线对比 │  Docker 资源统计   │
+│  与 E2E 共享配置和用户池                                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 ## 目录
 
 - [技术栈](#技术栈)

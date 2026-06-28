@@ -1,9 +1,26 @@
 """全局配置加载与管理。
 
-支持：
-- 多环境（dev / sit / uat / prod），通过 E2E_ENV 或 CLI --env 切换
-- 环境变量覆盖默认值（CI / 本地切换）
-- 多用户池（user_pool），按角色分配凭据
+设计目标（为什么这样设计）：
+- 多环境隔离：dev/sit/uat/prod 四套环境，配置独立，互不影响
+- 分层合并：base config.yaml + env 覆盖，遵循 DRY 原则
+- 优先级明确：yaml < env yaml < 环境变量，敏感信息可用环境变量覆盖
+- 类型安全：用 dataclass 替代 dict，IDE 自动补全，运行时类型检查
+- 不可变：frozen=True 防止运行时意外修改配置
+
+核心概念：
+- CONFIG：全局单例，程序启动时加载一次
+- SUPPORTED_ENVS：允许的环境列表，防止拼写错误
+- User/SupersetInstance/TestConfig：配置数据模型
+- build_config()：从 yaml + 环境变量构建配置
+- reload_config()：重新加载配置（用于测试或环境切换）
+
+用法：
+    from config.settings import CONFIG
+    print(CONFIG.admin_username)
+    print(CONFIG.env)
+    
+    # 切换环境
+    reload_config(env="sit")
 """
 from __future__ import annotations
 
@@ -25,6 +42,16 @@ DEFAULT_ENV = "dev"
 
 
 def _env_bool(name: str, default: bool) -> bool:
+    """读取布尔类型的环境变量。
+    
+    为什么需要这个封装：
+    - 环境变量值都是字符串，需要转换
+    - 支持多种表示 true 的写法：1/true/yes/on
+    - None/空字符串返回默认值
+    
+    示例：
+        _env_bool("E2E_HEADLESS", True)  # "1" → True, "0" → False, "" → True
+    """
     val = os.environ.get(name)
     if val is None:
         return default
@@ -32,6 +59,16 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    """读取整数类型的环境变量。
+    
+    为什么需要这个封装：
+    - 环境变量值都是字符串，需要转换
+    - None/空字符串返回默认值
+    - 转换失败会抛异常（快速失败）
+    
+    示例：
+        _env_int("E2E_RERUNS", 2)  # "3" → 3, "" → 2
+    """
     val = os.environ.get(name)
     if val is None:
         return default
@@ -39,14 +76,35 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_str(name: str, default: str) -> str:
+    """读取字符串类型的环境变量。
+    
+    为什么需要这个封装：
+    - os.environ.get() 返回 None，而我们希望返回默认值
+    - 统一处理空字符串（视为未设置）
+    
+    示例：
+        _env_str("E2E_BROWSER", "chromium")  # "firefox" → "firefox", "" → "chromium"
+    """
     val = os.environ.get(name)
     return val if val else default
 
 
 def current_env() -> str:
     """当前激活的环境（dev/sit/uat/prod）。
-
+    
+    为什么这样设计：
+    - 从 E2E_ENV 环境变量读取，支持 CLI --env 参数和 CI 环境变量
+    - 小写 + 去空格，防止用户输入大小写不一致或多余空格
+    - 验证是否在 SUPPORTED_ENVS 列表中，快速发现拼写错误
+    
     优先级：E2E_ENV 环境变量 > 默认 dev
+    
+    示例：
+        # 命令行设置
+        E2E_ENV=sit python run.py
+        
+        # CLI 参数设置（run.py 内部会设置 E2E_ENV）
+        python run.py --env sit
     """
     env = _env_str("E2E_ENV", DEFAULT_ENV).lower().strip()
     if env not in SUPPORTED_ENVS:
@@ -58,7 +116,22 @@ def current_env() -> str:
 
 @dataclass(frozen=True)
 class User:
-    """一个测试用户。"""
+    """一个测试用户的数据模型。
+    
+    为什么用 dataclass：
+    - 自动生成 __init__ / __repr__ / __eq__ 等方法
+    - frozen=True：不可变对象，防止测试过程中意外修改用户信息
+    - 类型注解：IDE 自动补全，运行时类型检查
+    
+    字段说明：
+    - username/password：登录凭据
+    - role：角色（admin/analyst/viewer/embed），用于权限测试和用户池分配
+    - label：可选标识，便于调试时区分用户
+    - extra：扩展字段，存放额外信息（如用户 ID、部门等）
+    
+    示例：
+        User(username="admin", password="admin", role="admin", label="default")
+    """
 
     username: str
     password: str
@@ -69,7 +142,30 @@ class User:
 
 @dataclass(frozen=True)
 class SupersetInstance:
-    """一个 Superset 实例的连接信息。"""
+    """一个 Superset 实例的连接信息。
+    
+    为什么需要这个模型：
+    - 支持多版本并行测试（4.1 和 6.0）
+    - 每个实例有独立的 base_url 和容器配置
+    - is_v6 属性便于判断版本，用于分支逻辑
+    
+    字段说明：
+    - name：实例名称（"4.1" / "6.0"），用于标识和参数化
+    - version：完整版本号（"4.1.1" / "6.0.0"），用于报告和日志
+    - base_url：访问地址，测试时使用
+    - compose_dir：docker compose 目录，冷启动时使用
+    - postgres_container/redis_container：容器名称，用于健康检查和统计
+    
+    示例：
+        SupersetInstance(
+            name="6.0",
+            version="6.0.0",
+            base_url="http://localhost:18089",
+            compose_dir=Path("../superset-6.0"),
+            postgres_container="superset-6.0-postgres",
+            redis_container="superset-6.0-redis",
+        )
+    """
 
     name: str            # "4.1" / "6.0"
     version: str         # "4.1.1" / "6.0.0"
@@ -80,46 +176,74 @@ class SupersetInstance:
 
     @property
     def is_v6(self) -> bool:
+        """判断是否为 6.0 版本（用于分支逻辑）。
+        
+        为什么用 name 而不是 version 判断：
+        - name 格式固定（"4.1" / "6.0"），version 可能有小版本号（"6.0.1"）
+        - 简单直接，避免版本号解析错误
+        """
         return self.name.startswith("6")
 
 
 @dataclass(frozen=True)
 class TestConfig:
-    """全局测试配置。"""
+    """全局测试配置的数据模型。
+    
+    为什么用 dataclass + frozen=True：
+    - dataclass：自动生成构造函数和常用方法，代码简洁
+    - frozen=True：配置一旦加载就不可修改，避免运行时意外变更
+    - 类型注解：IDE 自动补全，静态检查工具（如 mypy）可以发现类型错误
+    
+    配置字段分类：
+    1. 环境相关：env, mode, cleanup_on_exit
+    2. 凭据相关：admin_username, admin_password
+    3. 浏览器相关：browser, headless
+    4. 超时相关：page_timeout_ms, navigation_timeout_ms
+    5. 重试相关：reruns, reruns_delay
+    6. 路径相关：reports_dir, screenshots_dir, allure_results_dir
+    7. 实例相关：instances（Superset 4.1/6.0）
+    8. 用户池：user_pool（按角色分组的用户列表）
+    9. 性能测试：perf（透传配置）
+    """
 
-    # 激活的环境
+    # 激活的环境（dev/sit/uat/prod）
     env: str = DEFAULT_ENV
-    # 模式: cold=冷启动; reuse=复用现有服务
+    # 模式: cold=冷启动(先down再up); reuse=复用现有服务(默认)
     mode: str = "reuse"
-    # 是否在测试结束后清理冷启动的服务
+    # 是否在测试结束后清理冷启动的服务（生产环境建议关闭）
     cleanup_on_exit: bool = True
-    # admin 凭据（兼容旧调用）
+    # admin 凭据（兼容旧调用方式）
     admin_username: str = "admin"
     admin_password: str = "admin"
-    # 浏览器
+    # 浏览器类型
     browser: str = "chromium"  # chromium | firefox | webkit
+    # 是否无头模式（CI 用 headless，本地调试用 headed）
     headless: bool = True
-    # 超时（毫秒）
+    # 页面操作超时（毫秒）
     page_timeout_ms: int = 30000
+    # 页面导航超时（毫秒）
     navigation_timeout_ms: int = 60000
-    # 重试
+    # 失败重试次数
     reruns: int = 2
+    # 重试间隔（秒）
     reruns_delay: int = 3
-    # 报告路径
+    # 报告根目录
     reports_dir: Path = field(default_factory=lambda: _REPO_ROOT / "e2e" / "reports")
-    # Superset 实例列表
+    # Superset 实例列表（4.1 和 6.0）
     instances: tuple[SupersetInstance, ...] = field(default_factory=tuple)
     # 多用户池：role -> tuple[User, ...]
     user_pool: dict[str, tuple[User, ...]] = field(default_factory=dict)
-    # 性能测试段（透传）
+    # 性能测试段（透传配置，不做解析）
     perf: dict[str, Any] = field(default_factory=dict)
 
     @property
     def screenshots_dir(self) -> Path:
+        """失败截图存放目录（自动创建）。"""
         return self.reports_dir / "screenshots"
 
     @property
     def allure_results_dir(self) -> Path:
+        """Allure 报告原始数据目录。"""
         return self.reports_dir / "allure-results"
 
     # ------------------------------------------------------------------ #
@@ -127,16 +251,47 @@ class TestConfig:
     # ------------------------------------------------------------------ #
 
     def users_for_role(self, role: str) -> tuple[User, ...]:
-        """返回某角色下的所有用户。"""
+        """返回某角色下的所有用户。
+        
+        为什么返回 tuple 而不是 list：
+        - tuple 是不可变的，防止外部修改用户池
+        - 用户池在配置加载时确定，运行时不应变更
+        
+        示例：
+            users = CONFIG.users_for_role("viewer")
+            for user in users:
+                print(user.username)
+        """
         return self.user_pool.get(role, ())
 
     def has_role(self, role: str) -> bool:
+        """检查某角色是否有配置用户。"""
         return bool(self.users_for_role(role))
 
 
 def _load_env_config(env: str) -> dict:
-    """加载 e2e/config/config.yaml 与 config.<env>.yaml（env 覆盖 base）。
-
+    """加载配置文件：base config.yaml + env 覆盖。
+    
+    为什么这样设计（分层配置）：
+    - base config.yaml：存放所有环境共用的配置（DRY 原则）
+    - config.<env>.yaml：只存放当前环境的差异配置
+    - 深度合并：嵌套的 dict 也会合并，不是简单覆盖
+    
+    加载流程：
+    1. 加载 config.yaml（base）
+    2. 如果不是 DEFAULT_ENV（dev），加载 config.<env>.yaml
+    3. 深度合并：env 配置覆盖 base 配置
+    
+    示例：
+        config.yaml:          config.sit.yaml:
+        user_pool:              user_pool:
+          viewer:                 viewer:
+            - v1/pass               - v1/pass
+            - v2/pass               - v2/pass
+                                    - v3/pass
+                                    - v4/pass
+        → 合并后 viewer 有 4 个用户
+    
     优先级：config.<env>.yaml > config.yaml
     """
     cfg_dir = Path(__file__).parent

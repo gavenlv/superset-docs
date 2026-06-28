@@ -1,10 +1,37 @@
 """BDD 辅助：让测试自然语言可读 + 报告高亮焦点。
 
-设计：
-- 不引入 pytest-bdd（重），自实现轻量 BDD 体验
-- 每个 Step 自动注册到 Allure，并附截图/HTML 片段
-- 涉及页面操作时，对 focus 元素做高亮（注入 JS 添加 outline + 红框）
-- 操作过程中可截取当前画面、记录动作链
+设计目标（为什么这样设计）：
+- 可读性：测试用例像自然语言，非技术人员也能看懂
+- 轻量：不引入 pytest-bdd（依赖重、配置复杂），自实现轻量版本
+- 可观测：每个步骤自动高亮 + 截图 + Allure step
+- 灵活：与 Playwright 无缝集成，支持任意页面操作
+
+核心概念：
+- given：前置条件（已登录、页面已加载等）
+- when：触发动作（点击、输入、导航等）
+- then：验证结果（断言、检查状态等）
+- and_：补充步骤（连续操作或验证）
+
+为什么不用 pytest-bdd：
+- pytest-bdd 需要单独的 feature 文件和 step 定义
+- 配置复杂，学习曲线陡峭
+- 与 Playwright 集成不够灵活
+- 本框架的 BDD 更轻量，直接在测试函数中使用
+
+为什么用上下文管理器（with）：
+- 自动管理高亮的添加和移除
+- 异常时自动截图
+- 自动创建 Allure step
+
+用法：
+    from utils.bdd import given, when, then, and_
+    
+    with given("已登录 admin", page=page, focus="header"):
+        pass
+    with when("点击提交", page=page, focus="button.submit"):
+        pa.click(page, "button.submit")
+    with then("显示成功消息", screenshot=True):
+        assert page.locator(".success").count() > 0
 """
 from __future__ import annotations
 

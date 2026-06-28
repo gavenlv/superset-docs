@@ -1,7 +1,12 @@
 # Superset E2E + 性能测试 一页式快速开始
 
 > 5 分钟跑通 E2E + 性能基线，覆盖 Superset 4.1 / 6.0 双版本。
-> 详细文档：[e2e/README.md](../README.md)、[perf/README.md](../../perf/README.md)、[REPORTS.md](./REPORTS.md)（**报告查看指南**）。
+> 
+> 📚 **学习资源**：
+> - [GETTING_STARTED.md](./GETTING_STARTED.md) — 从零开始入门教程（推荐新手）
+> - [ARCHITECTURE.md](./ARCHITECTURE.md) — 架构设计（为什么这样设计）
+> - [e2e/README.md](../README.md) — 详细文档
+> - [REPORTS.md](./REPORTS.md) — 报告查看指南
 
 ## 0. 前置要求
 

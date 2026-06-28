@@ -1,13 +1,32 @@
 """Page Action 包装器：让 Playwright 操作自带高亮和动作记录。
 
-设计目标（headed 模式可观测）：
-- click()  / hover()  / fill()  / type()  / press()  / select_option()  / check()
-- 操作前 1.2s：高亮目标元素（红框 + 角标 + 呼吸动画）
-- 操作中：执行原 Playwright 调用
-- 操作后 0.3s：保留高亮（便于观察结果）
-- 整个动作链写到 Allure step + 动作日志
+设计目标（为什么这样设计）：
+- 可观测性：headed 模式下能看到测试在操作哪个元素
+- 调试方便：失败时能知道最后操作了哪个元素
+- 报告完整：每个操作自动注册为 Allure step
+- 性能友好：不影响 headless 模式的测试速度
+- 兼容现有代码：API 与 Playwright 一致，无缝替换
 
-为不影响性能与现有调用，所有函数接受 Page 和 selector，并返回 Playwright 原生结果。
+核心机制：
+1. 操作前：高亮目标元素（红框 + 角标 + 呼吸动画）
+2. 操作中：执行原 Playwright 调用
+3. 操作后：保留高亮 300ms（便于观察结果）
+4. 全程：记录到 Allure step
+
+为什么不直接用 page.click()：
+- 直接调用在 headless 模式下无法看到操作过程
+- 失败时难以定位问题
+- 没有步骤记录到报告
+
+用法：
+    from utils import page_actions as pa
+    pa.click(page, "button.submit")
+    pa.fill(page, 'input[name="q"]', "hello")
+    pa.goto(page, url)
+
+注意：
+- 所有 UI 操作必须通过 pa.* 执行（项目规则）
+- 只读操作（如 count(), text_content()）可以直接调用 page.locator()
 """
 from __future__ import annotations
 
@@ -79,7 +98,30 @@ def _with_action(
     value: Any,
     func: Callable[[Locator], Any],
 ) -> Any:
-    """通用包装：highlight + run + keep highlight 一会儿。"""
+    """通用包装：highlight + run + keep highlight 一会儿。
+    
+    为什么用闭包（func 参数）：
+    - 不同操作（click/fill/hover）有不同的 Playwright API
+    - 通过回调函数统一包装逻辑，避免重复代码
+    - func 接收 Locator，返回操作结果
+    
+    为什么用 try/finally：
+    - 确保高亮保留时间不受操作成功/失败影响
+    - 即使操作失败（元素不存在等），也能看到最后高亮的元素
+    - 便于调试失败原因
+    
+    为什么保留高亮 300ms：
+    - 足够人类肉眼观察操作结果
+    - 不会太长导致测试变慢
+    - 在 headed 模式下很有价值，headless 模式下影响可忽略
+    
+    参数说明：
+        page: Playwright Page 对象
+        selector: CSS 选择器
+        action: 动作名称（用于 Allure step 和高亮角标）
+        value: 操作值（如 fill 的内容，用于记录）
+        func: 实际执行的操作函数
+    """
     with allure.step(f"Action: {action} -> {selector} {f'(value={value!r})' if value is not None else ''}"):
         _highlight(page, selector, action=action, value=str(value) if value is not None else "")
         try:
