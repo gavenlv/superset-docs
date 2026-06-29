@@ -40,7 +40,7 @@ curl http://localhost:18088/health   # 4.1 → OK
 curl http://localhost:18089/health   # 6.0 → OK
 ```
 
-> 💡 **离线 Examples 机制**：示例数据（birth_names, energy, sales 等）已打包在 `example-data/` 目录，通过 volume 挂载到容器实现完全离线加载。详细说明见 [GETTING_STARTED.md §附录：离线 Examples 数据导入](./GETTING_STARTED.md#附录离线-examples-数据导入)。
+> 💡 **离线 Examples 机制**：示例数据（birth_names, energy, sales 等）已打包在 `example-data/` 目录，通过 volume 挂载到容器实现完全离线加载。详细说明见 [OFFLINE_EXAMPLES.md](./OFFLINE_EXAMPLES.md)。
 
 ## 2. 装 E2E 依赖
 

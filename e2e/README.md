@@ -8,7 +8,7 @@
 |-----|---------|------|
 | **新手入门** | [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) | 从零开始，跑第一个测试 |
 | **快速上手** | [docs/QUICKSTART.md](./docs/QUICKSTART.md) | 5 分钟跑通所有测试 |
-| **离线 Examples** | [docs/GETTING_STARTED.md#附录离线-examples-数据导入](./docs/GETTING_STARTED.md#附录离线-examples-数据导入) | 理解 examples 离线导入机制 |
+| **离线 Examples** | [docs/OFFLINE_EXAMPLES.md](./docs/OFFLINE_EXAMPLES.md) | 在无外网环境下导入示例数据 |
 | **理解设计** | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 知道「为什么」这么设计 |
 | **查看报告** | [docs/REPORTS.md](./docs/REPORTS.md) | E2E / 性能测试报告查看 |
 | **多环境配置** | [config/README.md](./config/README.md) | 配置 dev/sit/uat/prod |
@@ -96,7 +96,10 @@ e2e/
 ├── requirements.txt             # 显式依赖列表
 ├── docs/
 │   ├── QUICKSTART.md            # 一页式快速开始
-│   └── REPORTS.md               # 报告查看指南（E2E / Locust / k6 / 基线对比）
+│   ├── REPORTS.md               # 报告查看指南（E2E / Locust / k6 / 基线对比）
+│   ├── OFFLINE_EXAMPLES.md      # 离线示例数据导入指南
+│   ├── ARCHITECTURE.md          # 架构设计
+│   └── GETTING_STARTED.md       # 新手入门教程
 ├── config/                      # 多环境分层配置
 │   ├── settings.py              # 加载逻辑（yaml + env + user_pool 解析）
 │   ├── config.yaml              # base（dev）
